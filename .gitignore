@@ -1,0 +1,8 @@
+*.dcu
+*.cfg
+*.~pas
+*.dof
+*.~dpr
+*.ddp
+*.~ddp
+*.~dfm
