@@ -7,7 +7,7 @@ program rzfswizard;
 
 uses
   Forms,
-  UI in 'UI.pas',
+  UI in 'UI.pas' {WizUI},
   libMSF in 'libMSF.pas',
   URangeEncoder in 'LZMA\URangeEncoder.pas',
   UBitTreeDecoder in 'LZMA\UBitTreeDecoder.pas',
@@ -28,6 +28,6 @@ begin
   Application.Initialize;
 
   Application.Title := 'RaiderZ FileSystem Wizard';
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TWizUI, WizUI);
   Application.Run;
 end.

@@ -1,4 +1,4 @@
-object Form1: TForm1
+object WizUI: TWizUI
   Left = 405
   Top = 208
   HorzScrollBar.Visible = False
@@ -32,7 +32,7 @@ object Form1: TForm1
     DesignSize = (
       545
       65)
-    object Image1: TImage
+    object imHead: TImage
       Left = 0
       Top = 0
       Width = 545
@@ -3488,7 +3488,7 @@ object Form1: TForm1
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         FF00}
     end
-    object Label4: TLabel
+    object lblInfo: TLabel
       Left = 402
       Top = 16
       Width = 127
@@ -3498,7 +3498,7 @@ object Form1: TForm1
       Caption = 'RaiderZ FileSystem Wizard'
       Transparent = True
     end
-    object Label9: TLabel
+    object lblBuild: TLabel
       Left = 477
       Top = 32
       Width = 52
@@ -3560,11 +3560,11 @@ object Form1: TForm1
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = TabSheet1
+    ActivePage = tsTarget
     Align = alClient
     TabOrder = 0
-    object TabSheet1: TTabSheet
-      Caption = 'TabSheet1'
+    object tsBrowse: TTabSheet
+      Caption = 'tsBrowse'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -11
@@ -3572,7 +3572,7 @@ object Form1: TForm1
       Font.Style = []
       ParentFont = False
       TabVisible = False
-      object Label1: TLabel
+      object lblHead1: TLabel
         Left = 8
         Top = 8
         Width = 63
@@ -3585,34 +3585,23 @@ object Form1: TForm1
         Font.Style = [fsBold]
         ParentFont = False
       end
-      object Label2: TLabel
-        Left = 16
-        Top = 72
-        Width = 361
-        Height = 13
-        Caption = 
-          'To get started, select the fileindex from the file system you wi' +
-          'sh to modify:'
-      end
-      object Label19: TLabel
+      object lblInfo1: TLabel
         Left = 16
         Top = 40
-        Width = 358
+        Width = 169
         Height = 13
-        Caption = 
-          'This program allows you to modify files in the RaiderZ (r28320) ' +
-          'file system.'
+        Caption = 'Select the MSF file index to modify:'
       end
-      object Label20: TLabel
+      object lblStatusTxt: TLabel
         Left = 40
-        Top = 136
+        Top = 104
         Width = 35
         Height = 13
         Caption = 'Status:'
       end
-      object Label21: TLabel
+      object lblStatus: TLabel
         Left = 96
-        Top = 136
+        Top = 104
         Width = 85
         Height = 13
         Caption = 'No file selected'
@@ -3627,18 +3616,18 @@ object Form1: TForm1
       end
       object edPath: TEdit
         Left = 40
-        Top = 106
+        Top = 74
         Width = 289
         Height = 21
         TabStop = False
         Color = clBtnFace
-        PopupMenu = PopupMenu2
+        PopupMenu = pmNull
         ReadOnly = True
         TabOrder = 1
       end
       object btnBrowse: TButton
         Left = 416
-        Top = 104
+        Top = 72
         Width = 75
         Height = 25
         Caption = '&Browse..'
@@ -3646,18 +3635,18 @@ object Form1: TForm1
         TabOrder = 0
         OnClick = btnBrowseClick
       end
-      object Button1: TButton
+      object btnReset: TButton
         Left = 336
-        Top = 104
+        Top = 72
         Width = 75
         Height = 25
         Caption = 'Reset'
         TabOrder = 2
-        OnClick = Button1Click
+        OnClick = btnResetClick
       end
     end
-    object TabSheet3: TTabSheet
-      Caption = 'TabSheet3'
+    object tsTarget: TTabSheet
+      Caption = 'tsTarget'
       ImageIndex = 2
       TabVisible = False
       object Label5: TLabel
@@ -3676,9 +3665,9 @@ object Form1: TForm1
       object Label6: TLabel
         Left = 16
         Top = 40
-        Width = 236
+        Width = 176
         Height = 13
-        Caption = 'Select which folder you wish to make changes to:'
+        Caption = 'Select the folder you wish to modify:'
       end
       object ListView1: TListView
         Left = 16
@@ -3705,14 +3694,14 @@ object Form1: TForm1
         HideSelection = False
         ReadOnly = True
         RowSelect = True
-        PopupMenu = PopupMenu2
+        PopupMenu = pmNull
         TabOrder = 0
         ViewStyle = vsReport
         OnColumnClick = ListView1ColumnClick
       end
     end
-    object TabSheet4: TTabSheet
-      Caption = 'TabSheet4'
+    object tsSelect: TTabSheet
+      Caption = 'tsSelect'
       ImageIndex = 3
       TabVisible = False
       object Label7: TLabel
@@ -3731,11 +3720,9 @@ object Form1: TForm1
       object Label8: TLabel
         Left = 16
         Top = 40
-        Width = 391
+        Width = 161
         Height = 13
-        Caption = 
-          'NOTE: You must save these changes before you can edit another MR' +
-          'F container!'
+        Caption = 'Mark your file replacements here:'
       end
       object ListView2: TListView
         Left = 16
@@ -3779,9 +3766,18 @@ object Form1: TForm1
         Enabled = False
         TabOrder = 2
       end
+      object Button1: TButton
+        Left = 144
+        Top = 240
+        Width = 75
+        Height = 25
+        Caption = 'COM TEST'
+        TabOrder = 3
+        OnClick = Button1Click
+      end
     end
-    object TabSheet5: TTabSheet
-      Caption = 'TabSheet5'
+    object tsReview: TTabSheet
+      Caption = 'tsReview'
       ImageIndex = 4
       TabVisible = False
       object Label10: TLabel
@@ -3800,9 +3796,11 @@ object Form1: TForm1
       object Label11: TLabel
         Left = 16
         Top = 40
-        Width = 187
+        Width = 389
         Height = 13
-        Caption = 'The following files have been changed:'
+        Caption = 
+          'You have marked x files to update. These changes effect the foll' +
+          'owing MRF files:'
       end
       object Label12: TLabel
         Left = 32
@@ -3835,8 +3833,8 @@ object Form1: TForm1
         TabOrder = 0
       end
     end
-    object TabSheet6: TTabSheet
-      Caption = 'TabSheet6'
+    object tsProgress: TTabSheet
+      Caption = 'tsProgress'
       ImageIndex = 5
       TabVisible = False
       object Label15: TLabel
@@ -3901,16 +3899,16 @@ object Form1: TForm1
   end
   object OpenDialog1: TOpenDialog
     Filter = 
-      'MSF File Index (fileindex.msf)|fileindex.msf|MSF Backups (*.MSF)' +
-      '|*.msf'
-    Title = 'Open Index'
-    Left = 452
-    Top = 73
+      'RaiderZ MSF (fileindex.msf)|fileindex.msf|MSF Backups (*.MSF)|*.' +
+      'msf'
+    Title = 'Locate Index'
+    Left = 20
+    Top = 9
   end
-  object PopupMenu1: TPopupMenu
-    OnPopup = PopupMenu1Popup
-    Left = 388
-    Top = 231
+  object pmExtract: TPopupMenu
+    OnPopup = pmExtractPopup
+    Left = 68
+    Top = 39
     object Extract1: TMenuItem
       Caption = '&Extract'
     end
@@ -3921,8 +3919,8 @@ object Form1: TForm1
       Caption = 'Extract &All'
     end
   end
-  object PopupMenu2: TPopupMenu
-    Left = 364
-    Top = 231
+  object pmNull: TPopupMenu
+    Left = 60
+    Top = 7
   end
 end

@@ -6,33 +6,31 @@ unit rzFileSys;
 
 interface
 
-uses Dialogs, ComCtrls, SysUtils, Classes, libMSF, ULZMADecoder;
-
-// ULZMAEncoder;
-
-//  function PackLZMA(inFile: TMemoryStream): TMemoryStream;
+uses
+  Dialogs, ComCtrls, SysUtils, Classes, libMSF,
+  ULZMADecoder, ULZMAEncoder{, ULZMACommon};
 
 type
+  // MSF file info structure
   FILEINDEX_ENTRY = packed record
     size,
     offset,
     zsize     : Cardinal; // uint32
-    
     lenMRFN,
     lenName   : Word;     // uint16
-
     unknown   : Cardinal; // uint32 
   end;
 
-  MSF_ENTRY = packed record
-    mrfOwner,   // Index to MRF name
-    fileIndex,  // Index to string
-    mrfOffset,  // MRF file position offset
-    pkSize,     // Packed file size (stored in MRF)
-    unSize      // Unpacked file size
+  // File info in memory
+  MSF_ENTRY = record
+    mrfOwner,   // Owner index
+    fileIndex   // Name index 
              : Cardinal;
-    lstMod      // Last recorded modified time
-             : Integer;
+    entryData   // File info
+             : FILEINDEX_ENTRY;
+
+    replaceW : String;         
+    // todo: store filename of replacement
   end;
 
   type MSF = class
@@ -46,9 +44,6 @@ type
     Files       : Cardinal;
 
     function AddMrfFile( str : string ) : Cardinal;
-    procedure InsertEntry( var name: String;
-                           var mrfName: String;
-                           offset, size, usize: Cardinal );
     procedure ImportIndex( FIndex: TMemoryStream );
 
   public
@@ -59,13 +54,18 @@ type
     function FileCount() : Integer;
 
     function GetMrfList() : TStringList;
+
     function GetFilesForMrf(mrfIndex: Cardinal): Cardinal;
+    function GetTotalSizeForMrf(mrfIndex: Cardinal): Cardinal;
+    function GetTotalZSizeForMrf(mrfIndex: Cardinal): Cardinal;
 
     procedure AddFilesToList( grid: TListItems; mrfIndex: cardinal );
+    procedure ReplaceFile( mrfIndex, fileIndex: Cardinal; const fName: String );
 
   end;
 
   function UnLZMA(inFile: TMemoryStream; outSize:Cardinal): TMemoryStream;
+  function PackLZMA(inFile: TMemoryStream): TMemoryStream;
 
 implementation
 
@@ -142,26 +142,6 @@ begin
 
 end;
 
-procedure MSF.InsertEntry( var name: String;
-                           var mrfName: String;
-                           offset, size, usize: Cardinal );
-begin
-
-  // Reallocate memory for new structure
-
-  inc(Files);
-  SetLength(FileEntries, Files);
-        {
-  FileList.Add( name );
-  
-  FileEntries[Files-1].fileIndex := FileList.Count -1;
-  FileEntries[Files-1].mrfOwner  := AddMrfFile( mrfName );
-  FileEntries[Files-1].mrfOffset := offset;
-  FileEntries[Files-1].pkSize    := size;
-  FileEntries[Files-1].unSize    := usize;
-             }
-end;
-
 procedure MSF.ImportIndex( FIndex: TMemoryStream );
 var
   fRec : FILEINDEX_ENTRY;
@@ -190,33 +170,31 @@ begin
   while (FIndex.Position < FIndex.Size) do
   begin
 
-    //
-    FIndex.Read( fRec, SizeOf(FILEINDEX_ENTRY) );
+    with FileEntries[Files] do
+    begin
+      FIndex.Read( entryData, SizeOf(FILEINDEX_ENTRY) );
 
+      // Unpack strings:
+      SetLength(mrfn, entryData.lenMRFN);
+      FIndex.Read(pchar(mrfn)^, entryData.lenMRFN);
 
-    SetLength(mrfn, fRec.lenMRFN);
-    FIndex.Read(pchar(mrfn)^, fRec.lenMRFN);
-//    mrfn[fRec.mrfLen] := #0;
+      SetLength(fn, entryData.lenName);
+      FIndex.Read(pchar(fn)^, entryData.lenName);
 
-    SetLength(fn, fRec.lenName);
-    FIndex.Read(pchar(fn)^, fRec.lenName);
-//    fn[fRec.fnLen+1] := #0;
+      FileList.Add(fn);
 
-    //InsertEntry(fn, mrfn, fRec.mrfOff, fRec.size, fRec.uSize);
-    FileList.Add(fn);
+      // Update remaining FileEntries properties
+      fileIndex:= FileList.Count-1;
+      mrfOwner := AddMrfFile(mrfn);
 
-    FileEntries[Files].fileIndex:= FileList.Count-1;
-    FileEntries[Files].mrfOwner := AddMrfFile(mrfn);
-    FileEntries[Files].mrfOffset:= fRec.offset;
-    FileEntries[Files].pkSize   := fRec.zsize;
-    FileEntries[Files].unSize   := fRec.size;
-
-    Inc(Files);
+      Inc(Files);
+    end;
 
   end;
 
-  FileList.SaveToFile('filelist.txt');
-
+  {$IFDEF DUMP_FILELIST}
+    FileList.SaveToFile('filelist.txt');
+  {$ENDIF}
 end;
 
 function MSF.LoadFileIndex( FileName: String ) : Boolean;
@@ -271,7 +249,7 @@ begin
   Result := MrfFiles;
 end;
 
-function MSF.GetFilesForMrf(mrfIndex: Cardinal): Cardinal; 
+function MSF.GetFilesForMrf(mrfIndex: Cardinal): Cardinal;
 var i: Cardinal;
 begin
   Result := 0;
@@ -280,6 +258,27 @@ begin
       inc(Result);
 end;
 
+function MSF.GetTotalSizeForMrf(mrfIndex: Cardinal): Cardinal; 
+var i: Cardinal;
+begin
+  Result := 0;
+  for i:=1 to Files do
+    if FileEntries[i-1].mrfOwner = mrfIndex then
+      inc( Result, FileEntries[i-1].entryData.size );
+end;
+
+function MSF.GetTotalZSizeForMrf(mrfIndex: Cardinal): Cardinal;
+var i: Cardinal;
+begin
+  Result := 0;
+  for i:=1 to Files do
+    if FileEntries[i-1].mrfOwner = mrfIndex then
+      inc( Result, FileEntries[i-1].entryData.zsize );
+end;
+
+{
+  TODO: EXPAND THIS FUNCTION
+}
 procedure MSF.AddFilesToList( grid: TListItems; mrfIndex: cardinal );
 var i: Cardinal;
 begin
@@ -291,70 +290,52 @@ begin
       begin
 
         Caption := FileList[i-1];
-        SubItems.Add(IntToStr(integer(FileEntries[i].unSize)));
-        //SubItems.Add(IntToStr(integer(FileEntries[i].pkSize)));
 
-        {
-          Not extracted
-          Last modified
-          Modified
-        }
+        // todo: formatting of this item
+        
+        SubItems.Add(IntToStr(integer(FileEntries[i-1].entryData.size)));
 
-        SubItems.Add('<none>');
-
+        if length(FileEntries[i-1].replaceW) > 0 then
+          SubItems.Add( FileEntries[i-1].replaceW )
+        else
+          SubItems.Add('<none>');
 
       end;
 
     end;
 end;
 
+procedure MSF.ReplaceFile( mrfIndex, fileIndex: Cardinal; const fName:String );
+var
+  i,fc: cardinal;
+begin
 
-  
+  fc:=0;
 
- // FIndex.sa
-
-//  tmp :=GetCurrentDir();
-
-{  for i:=0 to MrfFiles.Count-1 do
-  begin
-
-    for j := 0 to length(mrffiles.Strings[i])-1 do
-      if pchar(mrffiles.Strings[i])[j] = '/' then
-        pchar(mrffiles.Strings[i])[j] := '\';
-
-    if not fileexists(CurrentPath() + mrffiles.Strings[i]) then
+  for i:=1 to Files do
+    if FileEntries[i-1].mrfOwner = mrfIndex then
     begin
 
-    // issue: zero ending string
-      doLog( 'File not found "'+(CurrentPath()+mrfFiles.Strings[i])+'"' );
+      if( fc = fileIndex ) then
+      begin
+
+        // do the file replacement here
+
+        FileEntries[i-1].replaceW := fName;
+        Exit;
+
+      end;
+
+      inc(fc);
 
     end;
-  end;     }
 
-//  form1.label1.Caption := inttostr(reccount)+' files here';
+end;  
 
-
-
-
-{
-
-var
-  x :tmemorystream;
-begin
-  {x:=tmemorystream.Create;
-  x.LoadFromFile('diditwork.dat');
-
-  with PackLZMA(x) do
-  begin
-    SaveToFile('test.dat');
-    Free;
-  end;
-
-  x.Free;  
-       
 function PackLZMA(inFile: TMemoryStream): TMemoryStream;
 var
   encoder:TLZMAEncoder;
+
 begin
   encoder := TLZMAEncoder.Create;
 
@@ -365,16 +346,14 @@ begin
   encoder.SetLcLpPb(3,0,2);     // defaults?!
 
 
-
   Result := TMemoryStream.Create;
 
   inFile.Position :=0;
   encoder.Code(inFile, Result, inFile.Size, -1);
 
   encoder.Free;
-end;
 
-  }
+end;  
 
 
 end.
