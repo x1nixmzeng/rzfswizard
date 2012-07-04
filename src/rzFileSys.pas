@@ -24,6 +24,7 @@ type
   // File info in memory
   MSF_ENTRY = record
     mrfOwner,   // Owner index
+    mrfIndex,   // Container index    
     fileIndex   // Name index 
              : Cardinal;
     entryData   // File info
@@ -44,6 +45,7 @@ type
     Files       : Cardinal;
 
     function AddMrfFile( str : string ) : Cardinal;
+    function GetMrfIndex( str : string) : Cardinal;
     procedure ImportIndex( FIndex: TMemoryStream );
 
   public
@@ -55,6 +57,7 @@ type
 
     function GetMrfList() : TStringList;
 
+    function GetMrfPartCount(mrfIndex2: Cardinal): Cardinal;
     function GetFilesForMrf(mrfIndex: Cardinal): Cardinal;
     function GetTotalSizeForMrf(mrfIndex: Cardinal): Cardinal;
     function GetTotalZSizeForMrf(mrfIndex: Cardinal): Cardinal;
@@ -62,12 +65,18 @@ type
     procedure AddFilesToList( grid: TListItems; mrfIndex: cardinal );
     procedure ReplaceFile( mrfIndex, fileIndex: Cardinal; const fName: String );
 
+    function GetFileReplacements(): TStringList;
   end;
 
   function UnLZMA(inFile: TMemoryStream; outSize:Cardinal): TMemoryStream;
   function PackLZMA(inFile: TMemoryStream): TMemoryStream;
 
 implementation
+
+function StripExt(From:String):String;
+begin
+  Result:= Copy(From, 0, Length(From)-Length(ExtractFileExt(From)));
+end;
 
 function UnLZMA(inFile: TMemoryStream; outSize:Cardinal): TMemoryStream;
 const
@@ -124,21 +133,43 @@ function MSF.AddMrfFile( str : string ) : Cardinal;
 var i: integer;
 begin
 
-  // Check the file doesn't already exist (most cases)
+  str := Copy(str, 0, length(str)-length(Extractfileext(str)));
 
-  for i := 1 to MrfFiles.Count do
+  for i := MrfFiles.Count downto 1 do
   begin
     if MrfFiles.Strings[i-1] = str then
     begin
       Result := i-1;
       Exit;
     end;
+  end; 
+
+  // else
+  Result := MrfFiles.Add( str );
+
+end;
+
+function MSF.GetMrfIndex( str: string ) : Cardinal;
+var
+  i: integer;
+begin
+
+  Result := 0; // 0 is the index root
+  str := ExtractFileExt(str);
+
+  if ( length(Str) > 0 ) and ( str <> '.mrf' ) then
+  begin
+
+    i := 1;
+
+    // atoi :
+    while ( i < length(str) ) and ( str[i+1] in ['0'..'9'] ) do
+    begin
+      Result := 10 * Result + (ord(str[i+1])-48);
+      inc(i);
+    end;
+
   end;
-
-  // Add the file
-
-  MrfFiles.Add( str );
-  Result := MrfFiles.Count-1;
 
 end;
 
@@ -185,7 +216,11 @@ begin
 
       // Update remaining FileEntries properties
       fileIndex:= FileList.Count-1;
+      
       mrfOwner := AddMrfFile(mrfn);
+      mrfIndex := GetMrfIndex(mrfn);
+      
+      replaceW := '';
 
       Inc(Files);
     end;
@@ -247,6 +282,20 @@ end;
 function MSF.GetMrfList() : TStringList;
 begin
   Result := MrfFiles;
+end;
+
+function MSF.GetMrfPartCount(mrfIndex2: Cardinal): Cardinal;
+var i: Cardinal;
+begin
+
+  Result := 0;
+  for i:=1 to Files do
+    with FileEntries[i-1] do
+      if ( mrfOwner = mrfIndex2 ) and( mrfIndex > Result ) then
+        Result := mrfIndex;
+
+  Inc(Result);
+
 end;
 
 function MSF.GetFilesForMrf(mrfIndex: Cardinal): Cardinal;
@@ -330,7 +379,19 @@ begin
 
     end;
 
-end;  
+end;
+
+function MSF.GetFileReplacements(): TStringList;
+var i: integer;
+begin
+  Result := TStringList.create;
+
+  for i:=1 to Files do
+    if FileEntries[i-1].replaceW <> '' then
+      Result.Append( FileEntries[i-1].replaceW );
+
+  // free'd after call
+end;
 
 function PackLZMA(inFile: TMemoryStream): TMemoryStream;
 var

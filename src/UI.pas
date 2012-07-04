@@ -10,7 +10,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, libMSF, rzFileSys;
+  Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, libMSF, rzFileSys, XPMan;
 
 type
   TWizUI = class(TForm)
@@ -29,22 +29,12 @@ type
     ListView1: TListView;
     tsSelect: TTabSheet;
     Label7: TLabel;
-    tsReview: TTabSheet;
-    Label10: TLabel;
-    Label11: TLabel;
     ListView2: TListView;
     Label8: TLabel;
-    Label12: TLabel;
-    ListBox1: TListBox;
     Button4: TButton;
-    Label14: TLabel;
     tsProgress: TTabSheet;
-    ProgressBar1: TProgressBar;
-    ProgressBar2: TProgressBar;
+    pbPatch: TProgressBar;
     Label15: TLabel;
-    Label16: TLabel;
-    Label17: TLabel;
-    Button5: TButton;
     btnBrowse: TButton;
     OpenDialog1: TOpenDialog;
     imHead: TImage;
@@ -62,6 +52,21 @@ type
     Label24: TLabel;
     Button2: TButton;
     Button1: TButton;
+    Label2: TLabel;
+    Label1: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    Label9: TLabel;
+    mPatch: TMemo;
+    XPManifest1: TXPManifest;
+    Label10: TLabel;
+    Edit1: TEdit;
+    Reset: TButton;
+    Button5: TButton;
+    Label12: TLabel;
+    Label13: TLabel;
+    CheckBox1: TCheckBox;
+    Panel1: TPanel;
     procedure btnNextClick(Sender: TObject);
     procedure btnBackClick(Sender: TObject);
     procedure pmExtractPopup(Sender: TObject);
@@ -71,7 +76,7 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    procedure ListView1ColumnClick(Sender: TObject; Column: TListColumn);
+    procedure CheckBox1Click(Sender: TObject);
   private
     function ProcessNavNext(tab: integer) : Boolean;
     function ProcessNavPrev(tab: integer) : Boolean;
@@ -79,6 +84,9 @@ type
     procedure ShowMessage(str: String);
 
     procedure ResetGlobalFileIndex() ;
+
+    procedure RunPatcher();
+
   public
     { Public declarations }
   end;
@@ -180,11 +188,6 @@ begin
 
 end;
 
-function GetFileExtLen( const FileName: String ): Integer;
-begin
-  Result := Length(ExtractFileExt( FileName )) ;
-end;
-
 function IntToStr2( const int: Cardinal ): String;
 var
   str : String;
@@ -212,15 +215,15 @@ const TAGS : array[0..3] of string =
     ' b',
     ' Kb',
     ' Mb',
-    ' Tb'
+    ' Gb'  // fixed the typo here ( was Tb ! )
   );
 begin
 
   i := 0;
 
-  while int > $400 do
+  while int > 1000 do
   begin
-    int := int div $400;
+    int := int div 1000;
     inc(i);
   end;
 
@@ -266,13 +269,19 @@ begin
 
         with ListView1.Items.Add do
         begin
+          {
+           NAME
+           PARTS
+           SIZE
+           ZSIZE
+           FILES
+          }
+
           caption := sl.Strings[i-1];
-          // File count
-          SubItems.Add( IntToStr2( FileIndex.GetFilesForMrf(i-1) ) );
-          // Packed Size
-          SubItems.Add( IntToSize( FileIndex.GetTotalZSizeForMrf(i-1) ) );
-          // Total Size
+          SubItems.Add( IntToStr2( FileIndex.GetMrfPartCount(i-1) ) );
           SubItems.Add( IntToSize( FileIndex.GetTotalSizeForMrf(i-1) ) );
+          SubItems.Add( IntToSize( FileIndex.GetTotalZSizeForMrf(i-1) ) );
+          SubItems.Add( IntToStr2( FileIndex.GetFilesForMrf(i-1) ) );
         end;
 
       end;
@@ -290,14 +299,12 @@ end;
 
 procedure TWizUI.FormCreate(Sender: TObject);
 begin
-  if tcMain.TabIndex <> 0 then
-    tcMain.Pages[0].Show;
+  // Correct the entry tab
+  if tcMain.TabIndex <> 0 then tcMain.Pages[0].Show;
 
   btnBack.Enabled := False;
 
   msfMakeHashTable();
-//  FileIndex := rzFileSys.MSF.Create;
-
   ResetGlobalFileIndex();
 
 end;
@@ -333,10 +340,20 @@ begin
             ListView2.Items.Clear;
             FileIndex.AddFilesToList( ListView2.Items, ListView1.Selected.Index );
 
+            if ListView2.Items.Count > 0 then
+              ListView2.Items.Item[0].Selected := True;
+
+
             Result := True;
           end
           else
             ShowMessage('Select a subfolder to continue');
+        end;
+    3 : begin
+
+          RunPatcher();
+          Result := True;
+
         end;
   end;
 
@@ -367,6 +384,10 @@ begin
         begin
           Result := True;
         end;
+      end;
+    2: begin
+
+         ShowMessage('Patch is in progress!');
 
        end;
   end;
@@ -469,33 +490,53 @@ begin
 
 end;
 
-
-procedure TWizUI.ListView1ColumnClick(Sender: TObject;
-  Column: TListColumn);
+procedure TWizUI.RunPatcher();
 var
   i: integer;
-begin
-  // only change display of stuff?
-  
-  case Column.Index of
-    3: begin
+  sl : TStringList;
 
-         dispAsBytes := not dispAsBytes;
-
-         for i := 1 to TListView(Sender).Items.Count do
-         begin
-
-           if dispAsBytes then
-             TListView(Sender).Items.Item[ i-1 ]
-             .SubItems[2] := IntToStr2( FileIndex.GetTotalSizeForMrf(i-1) )
-           else
-             TListView(Sender).Items.Item[ i-1 ]
-             .SubItems[2] := IntToSize( FileIndex.GetTotalSizeForMrf(i-1) )
-
-         end;
-
-       end;
+  procedure Log( str: String) ;
+  begin
+    mPatch.Lines.Add( Format('%d  %s', [0,str] ) );
   end;
+
+begin
+  // yeah, well that's what i said!
+
+  pbPatch.Min := 0;
+  pbPatch.Position := 0;
+
+  pbPatch.Max := 100;
+
+  mPatch.Lines.Clear();
+  Log('Patch started');
+
+  // todo: create thread which check files
+
+  sl := FileIndex.GetFileReplacements();
+
+  Log('Locating replacement files..');
+
+  for i:=0 to sl.Count-1 do
+  begin
+
+    if not FileExists(sl.Strings[i]) then
+    begin
+      Log('Failed to open "' + sl.strings[i] + '"');
+    end;
+
+  end;
+
+  Log( 'Found ' + IntToStr(sl.Count) + ' marked changes' );  
+
+  sl.Free;
+
+
+end;
+
+procedure TWizUI.CheckBox1Click(Sender: TObject);
+begin
+  Panel1.Visible:= TCheckBox(Sender).Checked;
 end;
 
 end.

@@ -3560,7 +3560,7 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = tsTarget
+    ActivePage = tsBrowse
     Align = alClient
     TabOrder = 0
     object tsBrowse: TTabSheet
@@ -3644,6 +3644,81 @@ object WizUI: TWizUI
         TabOrder = 2
         OnClick = btnResetClick
       end
+      object CheckBox1: TCheckBox
+        Left = 16
+        Top = 136
+        Width = 497
+        Height = 17
+        Caption = 'Show alternative developer mode'
+        Enabled = False
+        TabOrder = 3
+        OnClick = CheckBox1Click
+      end
+      object Panel1: TPanel
+        Left = 0
+        Top = 160
+        Width = 537
+        Height = 97
+        BevelOuter = bvNone
+        UseDockManager = False
+        TabOrder = 4
+        Visible = False
+        object Label10: TLabel
+          Left = 16
+          Top = 8
+          Width = 402
+          Height = 13
+          Caption = 
+            'This wizard can automatically detect file changes. Select the lo' +
+            'cal RaiderZ directory:'
+        end
+        object Label13: TLabel
+          Left = 96
+          Top = 72
+          Width = 120
+          Height = 13
+          Caption = 'No directory selected'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clMaroon
+          Font.Height = -11
+          Font.Name = 'Tahoma'
+          Font.Style = [fsBold]
+          ParentFont = False
+        end
+        object Label12: TLabel
+          Left = 40
+          Top = 72
+          Width = 35
+          Height = 13
+          Caption = 'Status:'
+        end
+        object Edit1: TEdit
+          Left = 40
+          Top = 40
+          Width = 289
+          Height = 21
+          Color = clBtnFace
+          PopupMenu = pmNull
+          ReadOnly = True
+          TabOrder = 0
+        end
+        object Reset: TButton
+          Left = 336
+          Top = 38
+          Width = 75
+          Height = 25
+          Caption = 'Reset'
+          TabOrder = 1
+        end
+        object Button5: TButton
+          Left = 416
+          Top = 38
+          Width = 75
+          Height = 25
+          Caption = '&Locate..'
+          TabOrder = 2
+        end
+      end
     end
     object tsTarget: TTabSheet
       Caption = 'tsTarget'
@@ -3680,7 +3755,11 @@ object WizUI: TWizUI
             Width = 200
           end
           item
-            Caption = 'File Count'
+            Caption = 'Parts'
+            Width = 60
+          end
+          item
+            Caption = 'Size'
             Width = 80
           end
           item
@@ -3688,7 +3767,7 @@ object WizUI: TWizUI
             Width = 80
           end
           item
-            Caption = 'Total Size'
+            Caption = 'Files'
             Width = 80
           end>
         HideSelection = False
@@ -3697,7 +3776,6 @@ object WizUI: TWizUI
         PopupMenu = pmNull
         TabOrder = 0
         ViewStyle = vsReport
-        OnColumnClick = ListView1ColumnClick
       end
     end
     object tsSelect: TTabSheet
@@ -3776,94 +3854,23 @@ object WizUI: TWizUI
         OnClick = Button1Click
       end
     end
-    object tsReview: TTabSheet
-      Caption = 'tsReview'
-      ImageIndex = 4
-      TabVisible = False
-      object Label10: TLabel
-        Left = 8
-        Top = 8
-        Width = 136
-        Height = 16
-        Caption = 'Review Modifications'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -13
-        Font.Name = 'Tahoma'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object Label11: TLabel
-        Left = 16
-        Top = 40
-        Width = 389
-        Height = 13
-        Caption = 
-          'You have marked x files to update. These changes effect the foll' +
-          'owing MRF files:'
-      end
-      object Label12: TLabel
-        Left = 32
-        Top = 200
-        Width = 324
-        Height = 13
-        Caption = 
-          'NOTE: The new file index will replace the current one (copy it n' +
-          'ow!)'
-      end
-      object Label14: TLabel
-        Left = 32
-        Top = 176
-        Width = 205
-        Height = 13
-        Caption = 'NOTE: Files over 100MB are split into parts'
-      end
-      object ListBox1: TListBox
-        Left = 136
-        Top = 64
-        Width = 249
-        Height = 89
-        ItemHeight = 13
-        Items.Strings = (
-          'Data/Characters.mrf'
-          'Data/Characters.001'
-          'Data/Characters.002'
-          'Data/Characters.003'
-          'Data/Characters.004')
-        TabOrder = 0
-      end
-    end
     object tsProgress: TTabSheet
       Caption = 'tsProgress'
       ImageIndex = 5
       TabVisible = False
       object Label15: TLabel
-        Left = 16
-        Top = 56
-        Width = 160
+        Left = 32
+        Top = 80
+        Width = 198
         Height = 13
-        Caption = 'File:  Data/Characters/image.png'
-      end
-      object Label16: TLabel
-        Left = 16
-        Top = 40
-        Width = 75
-        Height = 13
-        Caption = 'Progress: 25 %'
-      end
-      object Label17: TLabel
-        Left = 48
-        Top = 176
-        Width = 83
-        Height = 13
-        Caption = 'Status: Complete'
+        Caption = 'Compressing Data/Characters/image.png'
       end
       object Label24: TLabel
         Left = 8
         Top = 8
-        Width = 118
+        Width = 52
         Height = 16
-        Caption = 'Patching Progress'
+        Caption = 'Patches'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -13
@@ -3871,29 +3878,60 @@ object WizUI: TWizUI
         Font.Style = [fsBold]
         ParentFont = False
       end
-      object ProgressBar1: TProgressBar
-        Left = 48
-        Top = 72
+      object Label2: TLabel
+        Left = 16
+        Top = 40
+        Width = 350
+        Height = 13
+        Caption = 
+          'Your marked changed will now attempt to be patched into the file' +
+          'system.'
+      end
+      object Label1: TLabel
+        Left = 16
+        Top = 128
+        Width = 35
+        Height = 13
+        Caption = 'Status:'
+      end
+      object Label3: TLabel
+        Left = 80
+        Top = 128
+        Width = 135
+        Height = 13
+        Caption = 'Checking file replacements..'
+      end
+      object Label4: TLabel
+        Left = 80
+        Top = 144
+        Width = 107
+        Height = 13
+        Caption = 'Looking for MRF files..'
+      end
+      object Label9: TLabel
+        Left = 80
+        Top = 160
+        Width = 91
+        Height = 13
+        Caption = 'Compressing files..'
+      end
+      object pbPatch: TProgressBar
+        Left = 32
+        Top = 104
         Width = 409
         Height = 16
         Position = 25
         TabOrder = 0
       end
-      object ProgressBar2: TProgressBar
-        Left = 48
-        Top = 136
-        Width = 409
-        Height = 16
-        Position = 50
+      object mPatch: TMemo
+        Left = 40
+        Top = 176
+        Width = 297
+        Height = 73
+        TabStop = False
+        PopupMenu = pmNull
+        ReadOnly = True
         TabOrder = 1
-      end
-      object Button5: TButton
-        Left = 48
-        Top = 208
-        Width = 75
-        Height = 25
-        Caption = 'Save Log'
-        TabOrder = 2
       end
     end
   end
@@ -3907,7 +3945,7 @@ object WizUI: TWizUI
   end
   object pmExtract: TPopupMenu
     OnPopup = pmExtractPopup
-    Left = 68
+    Left = 60
     Top = 39
     object Extract1: TMenuItem
       Caption = '&Extract'
@@ -3922,5 +3960,9 @@ object WizUI: TWizUI
   object pmNull: TPopupMenu
     Left = 60
     Top = 7
+  end
+  object XPManifest1: TXPManifest
+    Left = 336
+    Top = 16
   end
 end
