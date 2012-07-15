@@ -3560,7 +3560,7 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = tsBrowse
+    ActivePage = tsProgress
     Align = alClient
     TabOrder = 0
     object tsBrowse: TTabSheet
@@ -3855,16 +3855,9 @@ object WizUI: TWizUI
       end
     end
     object tsProgress: TTabSheet
-      Caption = 'tsProgress'
+      Caption = '|'
       ImageIndex = 5
       TabVisible = False
-      object Label15: TLabel
-        Left = 32
-        Top = 80
-        Width = 198
-        Height = 13
-        Caption = 'Compressing Data/Characters/image.png'
-      end
       object Label24: TLabel
         Left = 8
         Top = 8
@@ -3881,57 +3874,72 @@ object WizUI: TWizUI
       object Label2: TLabel
         Left = 16
         Top = 40
-        Width = 350
+        Width = 394
         Height = 13
         Caption = 
-          'Your marked changed will now attempt to be patched into the file' +
-          'system.'
+          'This stage will allow you to patch the changes your have marked ' +
+          'in the filesystem.'
       end
       object Label1: TLabel
-        Left = 16
-        Top = 128
-        Width = 35
+        Left = 40
+        Top = 72
+        Width = 46
         Height = 13
-        Caption = 'Status:'
+        Caption = 'Changes:'
       end
       object Label3: TLabel
-        Left = 80
-        Top = 128
-        Width = 135
+        Left = 96
+        Top = 72
+        Width = 15
         Height = 13
-        Caption = 'Checking file replacements..'
+        Caption = 'NA'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
       end
       object Label4: TLabel
-        Left = 80
-        Top = 144
-        Width = 107
+        Left = 144
+        Top = 64
+        Width = 278
         Height = 13
-        Caption = 'Looking for MRF files..'
-      end
-      object Label9: TLabel
-        Left = 80
-        Top = 160
-        Width = 91
-        Height = 13
-        Caption = 'Compressing files..'
+        Caption = 'This is an ALPHA BUILD. No changes will be made!!'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
       end
       object pbPatch: TProgressBar
-        Left = 32
-        Top = 104
-        Width = 409
+        Left = 152
+        Top = 112
+        Width = 225
         Height = 16
         Position = 25
         TabOrder = 0
       end
       object mPatch: TMemo
-        Left = 40
-        Top = 176
-        Width = 297
-        Height = 73
+        Left = 16
+        Top = 152
+        Width = 497
+        Height = 105
         TabStop = False
-        PopupMenu = pmNull
+        PopupMenu = PopupMenu1
         ReadOnly = True
+        ScrollBars = ssVertical
         TabOrder = 1
+      end
+      object Button3: TButton
+        Left = 212
+        Top = 85
+        Width = 113
+        Height = 25
+        Caption = 'Begin'
+        TabOrder = 2
+        OnClick = Button3Click
       end
     end
   end
@@ -3964,5 +3972,25 @@ object WizUI: TWizUI
   object XPManifest1: TXPManifest
     Left = 336
     Top = 16
+  end
+  object PopupMenu1: TPopupMenu
+    Left = 92
+    Top = 7
+    object SaveLog1: TMenuItem
+      Caption = 'Save &As..'
+    end
+  end
+  object SaveDialog1: TSaveDialog
+    Filter = 'Text Document (*.txt)|*.txt|All Files|*.*'
+    Title = 'Save Patch Log'
+    Left = 24
+    Top = 40
+  end
+  object Timer1: TTimer
+    Enabled = False
+    Interval = 20
+    OnTimer = Timer1Timer
+    Left = 444
+    Top = 119
   end
 end

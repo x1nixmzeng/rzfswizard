@@ -1,8 +1,16 @@
+# D7
+
 *.dcu
 *.cfg
-*.~pas
 *.dof
-*.~dpr
 *.ddp
+
+# D7 Backups
+*.~pas
+*.~dpr
 *.~ddp
 *.~dfm
+
+# Other
+
+rzico2.ico

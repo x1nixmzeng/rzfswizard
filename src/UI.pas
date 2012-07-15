@@ -13,6 +13,18 @@ uses
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, libMSF, rzFileSys, XPMan;
 
 type
+
+  TPatcher = class(TThread)
+    public
+        fpacked: TMemoryStream;
+    private
+      myStatus: integer;
+    protected
+      procedure Execute; override;
+    public
+      function getProgress: integer;
+  end;
+
   TWizUI = class(TForm)
     pnHeader: TPanel;
     pnFooter: TPanel;
@@ -34,7 +46,6 @@ type
     Button4: TButton;
     tsProgress: TTabSheet;
     pbPatch: TProgressBar;
-    Label15: TLabel;
     btnBrowse: TButton;
     OpenDialog1: TOpenDialog;
     imHead: TImage;
@@ -53,10 +64,6 @@ type
     Button2: TButton;
     Button1: TButton;
     Label2: TLabel;
-    Label1: TLabel;
-    Label3: TLabel;
-    Label4: TLabel;
-    Label9: TLabel;
     mPatch: TMemo;
     XPManifest1: TXPManifest;
     Label10: TLabel;
@@ -67,6 +74,14 @@ type
     Label13: TLabel;
     CheckBox1: TCheckBox;
     Panel1: TPanel;
+    Button3: TButton;
+    Label1: TLabel;
+    Label3: TLabel;
+    PopupMenu1: TPopupMenu;
+    SaveLog1: TMenuItem;
+    SaveDialog1: TSaveDialog;
+    Timer1: TTimer;
+    Label4: TLabel;
     procedure btnNextClick(Sender: TObject);
     procedure btnBackClick(Sender: TObject);
     procedure pmExtractPopup(Sender: TObject);
@@ -77,6 +92,8 @@ type
     procedure Button4Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure CheckBox1Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
   private
     function ProcessNavNext(tab: integer) : Boolean;
     function ProcessNavPrev(tab: integer) : Boolean;
@@ -85,7 +102,9 @@ type
 
     procedure ResetGlobalFileIndex() ;
 
-    procedure RunPatcher();
+    procedure PrePatchChecks();
+
+    function PackFile(fname: String; var osize: integer) : TMemoryStream;
 
   public
     { Public declarations }
@@ -351,7 +370,7 @@ begin
         end;
     3 : begin
 
-          RunPatcher();
+          PrePatchChecks();
           Result := True;
 
         end;
@@ -387,7 +406,8 @@ begin
       end;
     2: begin
 
-         ShowMessage('Patch is in progress!');
+         //ShowMessage('Patch is in progress!');
+         Result := True;
 
        end;
   end;
@@ -490,6 +510,7 @@ begin
 
 end;
 
+{
 procedure TWizUI.RunPatcher();
 var
   i: integer;
@@ -497,16 +518,14 @@ var
 
   procedure Log( str: String) ;
   begin
-    mPatch.Lines.Add( Format('%d  %s', [0,str] ) );
+    mPatch.Lines.Add( Format('%s  %s', [TimeToStr(Now),str] ) );
   end;
 
 begin
-  // yeah, well that's what i said!
 
   pbPatch.Min := 0;
   pbPatch.Position := 0;
-
-  pbPatch.Max := 100;
+  pbPatch.Max := 100; // PRELIM MAX. max will increase with filesizes?
 
   mPatch.Lines.Clear();
   Log('Patch started');
@@ -533,10 +552,146 @@ begin
 
 
 end;
+      }
+
+procedure TWizUI.PrePatchChecks();
+begin
+
+  if FileIndex = nil then Exit;
+
+  // list the number of file replacements
+  label3.Caption := IntToStr( FileIndex.CountFileReplacements() );
+
+end;
 
 procedure TWizUI.CheckBox1Click(Sender: TObject);
 begin
   Panel1.Visible:= TCheckBox(Sender).Checked;
+end;
+
+{
+   compress file
+}
+function TWizUI.PackFile(fname: String; var osize: integer) : TMemoryStream;
+var
+  inFile : TMemoryStream;
+begin
+  osize := -1; // invalid size
+  if not fileexists(fname) then begin
+    result:=nil;
+    exit;
+  end;
+
+  inFile:=TMemoryStream.Create;
+
+  // lzma compressiong (TODO: PROGRESS METER)
+  Result:=rzFileSys.PackLZMA(inFile);
+
+  // msf scrambling
+  libMSF.msfScramble( Byte(Result.Memory^), Result.Size );
+  
+  inFile.Free;
+
+end;
+
+procedure TWizUI.Button3Click(Sender: TObject);
+var
+  rcnt : Cardinal;
+  patchth: TPatcher;
+
+  procedure Log( str: String) ;
+  begin
+    mPatch.Lines.Add( Format('%s  %s', [TimeToStr(Now),str] ) );
+  end;  
+
+begin
+
+  TButton(Sender).Enabled := False;
+  pbPatch.Min := 0;
+  pbPatch.Position := 0;
+  pbPatch.Max := 100; // preliminary position (could be updated for patch size)
+   
+  Application.ProcessMessages;
+
+  // This should NOT be the case at this tab (unless built like it)
+  if FileIndex = nil then
+  begin
+    TButton(Sender).Enabled := True;
+    Exit;
+  end;
+
+  rcnt := FileIndex.CountFileReplacements();
+
+  if rcnt = 0 then
+  begin
+  (**************************************
+    You have not marked any changes.
+    There is nothing to patch!
+  ***************************************)
+    ShowMessage('You have not marked any changes.'#13#10'There is nothing to patch!');
+    TButton(Sender).Enabled := True;
+    Exit;
+  end;
+
+  mPatch.Clear;
+  Log('Patching starts');
+  if rcnt = 1 then Log('1 file has been marked')
+  else             Log(IntToStr(rcnt)+' files have been marked');
+
+
+  {
+
+  // todo: push some data here and begin the patching process
+  patchth := TPatcher.Create( true );
+  patchth.FreeOnTerminate := False;
+  patchth.Resume;
+
+  while patchth.getProgress() < 100 do
+  begin
+    // update progress bar
+    pbPatch.Position := patchth.getProgress();
+    application.ProcessMessages;
+  end;
+
+  patchth.Free;
+
+  }
+
+  Log('Patching finished');
+
+  TButton(Sender).Enabled := True;
+
+end;
+
+procedure TWizUI.Timer1Timer(Sender: TObject);
+begin
+  if pbPatch.Position = pbPatch.Max then timer1.Enabled:=False
+  else
+    pbPatch.Position := pbPatch.Position +1;
+end;
+        {
+constructor TPatcher.Create;
+begin
+  inherited Create;
+  // setup some private members here
+  myStatus := 0;
+  FreeOnTerminate := True;
+end;
+       }
+procedure TPatcher.Execute;
+begin
+
+  while myStatus < 101 do
+  begin
+    inc(myStatus);
+    //Sleep(100);
+  end;
+
+end;
+
+function TPatcher.getProgress: integer;
+begin
+  Result := myStatus;
 end;
 
 end.
