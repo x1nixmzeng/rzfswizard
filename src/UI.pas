@@ -82,6 +82,7 @@ type
     SaveDialog1: TSaveDialog;
     Timer1: TTimer;
     Label4: TLabel;
+    Button6: TButton;
     procedure btnNextClick(Sender: TObject);
     procedure btnBackClick(Sender: TObject);
     procedure pmExtractPopup(Sender: TObject);
@@ -94,6 +95,7 @@ type
     procedure CheckBox1Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
   private
     function ProcessNavNext(tab: integer) : Boolean;
     function ProcessNavPrev(tab: integer) : Boolean;
@@ -692,6 +694,14 @@ end;
 function TPatcher.getProgress: integer;
 begin
   Result := myStatus;
+end;
+
+procedure TWizUI.Button6Click(Sender: TObject);
+begin
+  if FileIndex = nil then exit;
+
+  FileIndex.SaveFileIndex('lolwhat.msf');
+
 end;
 
 end.

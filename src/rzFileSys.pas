@@ -9,6 +9,11 @@ unit rzFileSys;
 
 interface
 
+// Optional debugging features
+//
+{ $DEFINE EXPORT_MSFDEC}   // Dump the decompressed MSF data
+{ $DEFINE EXPORT_FILELIST} // Save a plaintext file with the filenames
+
 uses
   Dialogs, ComCtrls, SysUtils, Classes, libMSF,
   ULZMADecoder, ULZMAEncoder;
@@ -63,6 +68,7 @@ type
 
     function AddMrfFile( str : string ) : Cardinal;
     function GetMrfIndex( str : string) : Cardinal;
+    procedure ExportIndex( FIndex: TMemoryStream );    
     procedure ImportIndex( FIndex: TMemoryStream );
 
   public
@@ -104,14 +110,17 @@ constructor MSF.Create;
 begin
   inherited Create;
 
+  // Create the string arrays
   MrfFiles := TStringList.Create;
   FileList := TStringList.Create;
 
+  // Make hash table if it does not exist
   if not libMSF.msfGetHashTable() then
   begin
     libMSF.msfMakeHashTable();
   end;
 
+  // Setup array
   SetLength(FileEntries, 0);
   Files    := 0;
 end;
@@ -120,12 +129,17 @@ end;
 //
 destructor MSF.Destroy;
 begin
+  // Destroy string arrays
+  MrfFiles.Clear;
   MrfFiles.Free;
+  FileList.Clear;
   FileList.Free;
 
+  // Clear array
   SetLength(FileEntries, 0);
   Files    := 0;
 
+  // Destroy base class
   inherited Destroy;
 end;
 
@@ -135,18 +149,21 @@ function MSF.AddMrfFile( str : string ) : Cardinal;
 var i: integer;
 begin
 
+  // Copy the filename without the extension (if there is one) 
   str := Copy(str, 0, length(str)-length(Extractfileext(str)));
 
+  // Starting from the back, check the filename has been previously added
   for i := MrfFiles.Count downto 1 do
   begin
     if MrfFiles.Strings[i-1] = str then
     begin
+      // Filename has already been added, so return the index and exit
       Result := i-1;
       Exit;
     end;
-  end; 
+  end;
 
-  // else
+  // Filename does not exist, so push it back (add() returns the index)
   Result := MrfFiles.Add( str );
 
 end;
@@ -156,15 +173,17 @@ end;
 function MSF.GetMrfIndex( str: string ) : Cardinal;
 var
   i: integer;
+const
+  MRF_NOT_SPLIT  = 0;
 begin
 
-  Result := 0; // 0 is the index root
-  str := ExtractFileExt(str);
+  // Initially not split (where extension = '.mrf')
+  Result := MRF_NOT_SPLIT;
+  str    := ExtractFileExt(str);
 
   if ( length(Str) > 0 ) and ( str <> '.mrf' ) then
   begin
-
-    i := 1;
+    i := 1; // start past the leading period
 
     // atoi :
     while ( i < length(str) ) and ( str[i+1] in ['0'..'9'] ) do
@@ -172,7 +191,6 @@ begin
       Result := 10 * Result + (ord(str[i+1])-48);
       inc(i);
     end;
-
   end;
 
 end;
@@ -197,35 +215,37 @@ begin
     inc(Files);
   end;
 
+  // Allocate the array size
   SetLength(FileEntries, Files);
 
   FIndex.Position := 0;
   Files := 0;
   
   // Then loop through reading each entry
-  //
   while (FIndex.Position < FIndex.Size) do
   begin
-
     with FileEntries[Files] do
     begin
+      // Read structures:
+      // #1
       FIndex.Read( entryData, SizeOf(FILEINDEX_ENTRY) );
 
-      // Unpack strings:
+      // #2 (MRF filename string)
       SetLength(mrfn, entryData.lenMRFN);
       FIndex.Read(pchar(mrfn)^, entryData.lenMRFN);
-
+      
+      // #3 (filename string)
       SetLength(fn, entryData.lenName);
       FIndex.Read(pchar(fn)^, entryData.lenName);
 
+      // Store data:
+      // All filenames are unique, so get their own entry
       FileList.Add(fn);
 
       // Update remaining FileEntries properties
       fileIndex:= FileList.Count-1;
-      
       mrfOwner := AddMrfFile(mrfn);
       mrfIndex := GetMrfIndex(mrfn);
-      
       replaceW := '';
 
       Inc(Files);
@@ -233,7 +253,8 @@ begin
 
   end;
 
-  {$IFDEF DUMP_FILELIST}
+  {$IFDEF EXPORT_FILELIST}
+    // Log the unique filenames to file
     FileList.SaveToFile('filelist.txt');
   {$ENDIF}
 end;
@@ -251,16 +272,16 @@ begin
 
   Result := False;
 
+  // Check the file exists
   if not FileExists( FileName ) then Exit;
 
   // Open the file for reading
-
   FIndex := TFileStream.Create( FileName, fmOpenRead );
 
-  // Get the uncompressed size and copy data to buffer
-
+  // Get the uncompressed size
   FIndex.Read(unSize, 4);
 
+  // Copy this data to its own buffer
   UnpackBuf := TMemoryStream.Create;
   UnpackBuf.CopyFrom(FIndex, FIndex.Size - 4);
   FIndex.Free;
@@ -275,10 +296,56 @@ begin
 
   // Import the file data
   tmpBuffer.Position := 0;
+  {$IFDEF EXPORT_MSFDEC}
+    tmpBuffer.SaveToFile('flist_debug.msf');
+  {$ENDIF}
   ImportIndex( tmpBuffer );
-  
+
+  // Clear the buffers
   tmpBuffer.Free;
   Result := True;
+
+end;
+
+//
+//
+procedure MSF.ExportIndex( FIndex: TMemoryStream );
+var
+  i,len: Cardinal;
+  tmp: string;
+
+  // Get the MRF extension based on the part index
+  //
+  function GetMrfPartName( index: cardinal ): string;
+  begin
+    if index = 0 then result := '.mrf'
+    else              result := format('.%.3d',[index]);
+  end;
+
+begin
+
+  for i:=1 to Files do
+  begin
+    // Write the stored FILEINDEX_ENTRY structure
+    FIndex.Write( FileEntries[i-1].entryData, sizeof( FILEINDEX_ENTRY ) );
+
+    // Write the MRF filename:
+    // #1 Find the filename (TODO: CHECK LENGTH)
+    tmp := MrfFiles[ FileEntries[i-1].mrfOwner ];
+    // #2 Get the file extension
+    tmp := tmp + GetMrfPartName( FileEntries[i-1].mrfIndex );
+    // #3 Write the string
+    FIndex.Write( tmp[1], length(tmp) );
+
+    // Write the filename:
+    // #1 Get the string (TODO: CHECK LENGTH)
+    tmp := FileList.Strings[i-1];
+    // #2 Write the string
+    FIndex.Write( tmp[1], length(tmp) );
+  end;
+
+  // Housekeeping!
+  tmp := '';
 
 end;
 
@@ -286,9 +353,45 @@ end;
 //
 function MSF.SaveFileIndex( FileName: String ) : Boolean;
 var
-  FIndex : TFileStream; // output file
+  FIndex : TMemoryStream; // output file
+  tmpBuffer1, tmpBuffer2: TMemoryStream;
+  unpack_size: cardinal;
 begin
-  //
+
+  tmpBuffer1 := TMemoryStream.Create;
+
+  // Create the fileindex.msf structure
+  ExportIndex( tmpBuffer1 );
+
+  // Save the raw filesize
+  unpack_size := tmpBuffer1.Size;
+
+  // Pack in memory
+//  tmpBuffer2 := TMemoryStream.Create;
+//  tmpBuffer1.Position := 0;
+//  tmpBuffer2.CopyFrom(tmpBuffer1, tmpBuffer1.Size);
+  tmpBuffer2 := PackLZMA( tmpBuffer1 );
+  tmpBuffer1.Free;
+
+  // Scramble the data
+  tmpBuffer2.Position := 0;
+  libMSF.msfScramble(Byte(tmpBuffer2.Memory^), tmpBuffer2.Size);
+
+  FIndex := TMemoryStream.Create;
+
+  // Write unpacked size
+  FIndex.Write(unpack_size, 4);
+  // Write compressed+scrambled data
+  FIndex.CopyFrom(tmpBuffer2, tmpBuffer2.Size);
+  
+  tmpBuffer2.Free;
+
+  // Save packed data
+  FIndex.SaveToFile( FileName );
+
+  FIndex.Free;
+  Result := True;
+
 end;
 
 // Count the number of files in the system

@@ -3560,7 +3560,7 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = tsProgress
+    ActivePage = tsBrowse
     Align = alClient
     TabOrder = 0
     object tsBrowse: TTabSheet
@@ -3718,6 +3718,15 @@ object WizUI: TWizUI
           Caption = '&Locate..'
           TabOrder = 2
         end
+      end
+      object Button6: TButton
+        Left = 416
+        Top = 104
+        Width = 75
+        Height = 25
+        Caption = '- PACK TEST -'
+        TabOrder = 5
+        OnClick = Button6Click
       end
     end
     object tsTarget: TTabSheet
