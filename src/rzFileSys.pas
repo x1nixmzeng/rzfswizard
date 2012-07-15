@@ -13,6 +13,7 @@ interface
 //
 { $DEFINE EXPORT_MSFDEC}   // Dump the decompressed MSF data
 { $DEFINE EXPORT_FILELIST} // Save a plaintext file with the filenames
+{ $DEFINE EXPORT_MSFTEST}  // Dump the new MSF data
 
 uses
   Dialogs, ComCtrls, SysUtils, Classes, libMSF,
@@ -70,6 +71,8 @@ type
     function GetMrfIndex( str : string) : Cardinal;
     procedure ExportIndex( FIndex: TMemoryStream );    
     procedure ImportIndex( FIndex: TMemoryStream );
+
+    function GetMrfPartName( index: cardinal ): string;    
 
   public
     constructor Create;
@@ -307,21 +310,20 @@ begin
 
 end;
 
+// Get the MRF extension based on the part index
 //
+function MSF.GetMrfPartName( index: cardinal ): string;
+begin
+  if index = 0 then result := '.mrf'
+  else              result := format('.%.3d',[index]);
+end;
+
+// Create the fileindex.msf data structure
 //
 procedure MSF.ExportIndex( FIndex: TMemoryStream );
 var
   i,len: Cardinal;
   tmp: string;
-
-  // Get the MRF extension based on the part index
-  //
-  function GetMrfPartName( index: cardinal ): string;
-  begin
-    if index = 0 then result := '.mrf'
-    else              result := format('.%.3d',[index]);
-  end;
-
 begin
 
   for i:=1 to Files do
@@ -363,13 +365,14 @@ begin
   // Create the fileindex.msf structure
   ExportIndex( tmpBuffer1 );
 
+  {$IFDEF EXPORT_MSFTEST}
+    tmpBuffer1.SaveToFile('msf_rebuild.msf');
+  {$ENDIF}
+
   // Save the raw filesize
   unpack_size := tmpBuffer1.Size;
 
   // Pack in memory
-//  tmpBuffer2 := TMemoryStream.Create;
-//  tmpBuffer1.Position := 0;
-//  tmpBuffer2.CopyFrom(tmpBuffer1, tmpBuffer1.Size);
   tmpBuffer2 := PackLZMA( tmpBuffer1 );
   tmpBuffer1.Free;
 
@@ -457,11 +460,34 @@ begin
       inc( Result, FileEntries[i-1].entryData.zsize );
 end;
 
-{
-  TODO: EXPAND THIS FUNCTION
-}
+// Export the file list from MRF index
+//
 procedure MSF.AddFilesToList( grid: TListItems; mrfIndex: cardinal );
 var i: Cardinal;
+
+function IntToSize( int: Cardinal ): String;
+var i: integer;
+const TAGS : array[0..3] of string =
+  (
+    ' b',
+    ' Kb',
+    ' Mb',
+    ' Gb'  // fixed the typo here ( was Tb ! )
+  );
+begin
+
+  i := 0;
+
+  while int > 1000 do
+  begin
+    int := int div 1000;
+    inc(i);
+  end;
+
+  Result := IntToStr( int ) + TAGS[i];
+
+end;
+
 begin
   for i:=1 to Files do
     if FileEntries[i-1].mrfOwner = mrfIndex then
@@ -469,13 +495,14 @@ begin
 
       with grid.Add do
       begin
-
+        {
+         NAME
+         SIZE
+         REPLACEMENT
+        }
         Caption := FileList[i-1];
-
-        // todo: formatting of this item
         
-        SubItems.Add(IntToStr(integer(FileEntries[i-1].entryData.size)));
-
+        SubItems.Add(IntToSize(FileEntries[i-1].entryData.size));
         if length(FileEntries[i-1].replaceW) > 0 then
           SubItems.Add( FileEntries[i-1].replaceW )
         else
@@ -486,6 +513,8 @@ begin
     end;
 end;
 
+// Mark a file for replacement
+//
 procedure MSF.ReplaceFile( mrfIndex, fileIndex: Cardinal; const fName:String );
 var
   i,fc: cardinal;
@@ -496,23 +525,19 @@ begin
   for i:=1 to Files do
     if FileEntries[i-1].mrfOwner = mrfIndex then
     begin
-
       if( fc = fileIndex ) then
       begin
-
-        // do the file replacement here
-
         FileEntries[i-1].replaceW := fName;
         Exit;
-
       end;
 
       inc(fc);
-
     end;
 
 end;
 
+// Count the number of marked files for replacement
+//
 function MSF.CountFileReplacements(): Cardinal;
 var i: integer;
 begin
@@ -527,11 +552,6 @@ end;
 // Unpack a file in memory
 //
 function UnLZMA(inFile: TMemoryStream; outSize:Cardinal): TMemoryStream;
-const
-  LZMA_PROPS_SIZE = 5;
-  LZMA_HEADER_EX : array[0..LZMA_PROPS_SIZE-1] of byte =
-  ( $5D, $00, $00, $01, $00 );
-
 var
   decoder:TLZMADecoder;
 begin
@@ -541,8 +561,8 @@ begin
   decoder := TLZMADecoder.Create;
 
   try
-    decoder.SetDictionarySize(0);
-    decoder.SetDecoderProperties(LZMA_HEADER_EX);
+    decoder.SetDictionarySize( $10000 ); // 2^16
+    decoder.SetLcLpPb(3,0,2);
     decoder.Code(inFile, Result, outSize);
   finally
     decoder.Free;
@@ -559,12 +579,8 @@ var
 begin
   encoder := TLZMAEncoder.Create;
 
-//  encoder.SetAlgorithm(2);  does NOTHING.. check the source
-  encoder.SetDictionarySize($10000);
-//  encoder.SeNumFastBytes(128) ; ??
-//  encoder.SetMatchFinder(1) ;   ??   
-  encoder.SetLcLpPb(3,0,2);     // defaults?!
-
+  encoder.SetDictionarySize($10000); // 2^16
+  encoder.SetLcLpPb(3,0,2);
 
   Result := TMemoryStream.Create;
 

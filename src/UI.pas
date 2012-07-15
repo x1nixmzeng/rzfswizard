@@ -10,7 +10,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, libMSF, rzFileSys, XPMan;
+  Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, libMSF, rzFileSys, XPMan,
+  StrUtils;
 
 type
 
@@ -75,14 +76,15 @@ type
     CheckBox1: TCheckBox;
     Panel1: TPanel;
     Button3: TButton;
-    Label1: TLabel;
-    Label3: TLabel;
     PopupMenu1: TPopupMenu;
     SaveLog1: TMenuItem;
     SaveDialog1: TSaveDialog;
     Timer1: TTimer;
     Label4: TLabel;
     Button6: TButton;
+    Edit2: TEdit;
+    Label9: TLabel;
+    ClearLog1: TMenuItem;
     procedure btnNextClick(Sender: TObject);
     procedure btnBackClick(Sender: TObject);
     procedure pmExtractPopup(Sender: TObject);
@@ -96,6 +98,11 @@ type
     procedure Button3Click(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
     procedure Button6Click(Sender: TObject);
+    procedure Edit2Change(Sender: TObject);
+    procedure Edit2KeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure ClearLog1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private
     function ProcessNavNext(tab: integer) : Boolean;
     function ProcessNavPrev(tab: integer) : Boolean;
@@ -107,6 +114,8 @@ type
     procedure PrePatchChecks();
 
     function PackFile(fname: String; var osize: integer) : TMemoryStream;
+
+    function ListViewSearch(lb:TListView;needle:string;fromcur:boolean=false):boolean;
 
   public
     { Public declarations }
@@ -278,7 +287,6 @@ begin
     if FileIndex.LoadFileIndex(edPath.text) then
     begin
 
-      sl := TStringList.Create;
       sl := FileIndex.GetMrfList();
 
       // Remove previous MRF list
@@ -310,7 +318,8 @@ begin
       if sl.Count > 0 then
         ListView1.Items[0].Selected := true;
 
-      lblStatus.Caption := Format('Success! Located %d files', [FileIndex.FileCount()]);
+      lblStatus.Caption := 'Success! Located '+IntToStr2(FileIndex.FileCount()
+                                                                    )+' files';
       lblStatus.Font.Color := clGreen;
 
     end;
@@ -562,7 +571,9 @@ begin
   if FileIndex = nil then Exit;
 
   // list the number of file replacements
-  label3.Caption := IntToStr( FileIndex.CountFileReplacements() );
+//  label3.Caption := IntToStr( FileIndex.CountFileReplacements() );
+
+  pbPatch.Position := 0;
 
 end;
 
@@ -603,15 +614,15 @@ var
 
   procedure Log( str: String) ;
   begin
-    mPatch.Lines.Add( Format('%s  %s', [TimeToStr(Now),str] ) );
-  end;  
+    mPatch.Lines.Add( Format('[%s] %s', [TimeToStr(Now),str] ) );
+  end;
 
 begin
 
   TButton(Sender).Enabled := False;
-  pbPatch.Min := 0;
+  pbPatch.Min      := 0;
   pbPatch.Position := 0;
-  pbPatch.Max := 100; // preliminary position (could be updated for patch size)
+  pbPatch.Max      := 100; // preliminary position
    
   Application.ProcessMessages;
 
@@ -635,10 +646,9 @@ begin
     Exit;
   end;
 
-  mPatch.Clear;
-  Log('Patching starts');
-  if rcnt = 1 then Log('1 file has been marked')
-  else             Log(IntToStr(rcnt)+' files have been marked');
+  Log('-- Patching begins');
+  if rcnt = 1 then Log('1 file marked')
+  else             Log(IntToStr(rcnt)+' files marked');
 
 
   {
@@ -659,7 +669,7 @@ begin
 
   }
 
-  Log('Patching finished');
+  Log('-- Patching has finished');
 
   TButton(Sender).Enabled := True;
 
@@ -698,10 +708,104 @@ end;
 
 procedure TWizUI.Button6Click(Sender: TObject);
 begin
+// todo: remove
   if FileIndex = nil then exit;
 
   FileIndex.SaveFileIndex('lolwhat.msf');
 
+end;
+
+function TWizUI.ListViewSearch(lb:TListView;needle:string;fromcur:boolean=false):boolean;
+var i,j:integer;
+begin
+  Result := False;
+  if needle = '' then exit;
+  if lb.Items.Count = 0 then exit;
+
+  // Start from the beginning
+  j:=1;
+
+  // Start from the current result/selection
+  if ( lb.SelCount > 0 ) and ( fromcur = true ) then j := lb.Selected.Index+2;
+
+  for i:= j to lb.Items.Count do
+  begin
+    // Bloated string locator
+    if( AnsiContainsText( lb.Items.Item[i-1].Caption, needle ) ) then
+    begin
+      lb.Items.Item[i-1].Selected := True;
+      lb.Selected.MakeVisible(false);
+      Result:=true;
+      exit;
+    end;
+  end;
+
+end;
+
+procedure TWizUI.Edit2Change(Sender: TObject);
+const
+  QUERY_EMPTY   = '';
+  QUERY_SUCCESS = 'Found!';
+  QUERY_FAILED  = 'No results';
+begin
+  // Is the query empty?
+  if edit2.Text = '' then
+    label9.Caption := QUERY_EMPTY
+
+  // Search for the query
+  else
+    // Search from the start
+    if ListViewSearch( listview2, edit2.Text ) then begin
+      label9.Caption := QUERY_SUCCESS;
+      edit2.Font.Color := clGreen;
+    end
+    else begin
+      edit2.Font.Color := clRed;
+      label9.Caption   := QUERY_FAILED;
+    end;
+end;
+
+procedure TWizUI.Edit2KeyDown(Sender:TObject;var Key:Word;Shift:TShiftState);
+const
+  QUERY_EMPTY   = '';
+  QUERY_SUCCESS = 'Found another!';
+  QUERY_FAILED  = 'No more results';
+begin
+  // Look for next result!
+  if ord(key) = VK_RETURN then
+  begin
+    if edit2.Text = '' then
+      label9.Caption := QUERY_EMPTY
+    else
+      // Search from the current position
+      if ListViewSearch(listview2, edit2.Text, true ) then
+      begin
+        label9.Caption := QUERY_SUCCESS;
+        edit2.Font.Color := clGreen ;
+      end
+      else
+      begin
+        edit2.Font.Color := clRed;
+        label9.Caption   := QUERY_FAILED;
+      end;
+  end
+
+  // Clear the query
+  else if ord(key) = VK_ESCAPE then
+  begin
+    edit2.Text := QUERY_EMPTY;
+    label9.Caption := QUERY_EMPTY;
+  end;
+end;
+
+procedure TWizUI.ClearLog1Click(Sender: TObject);
+begin
+  mPatch.Clear;
+end;
+
+procedure TWizUI.Button2Click(Sender: TObject);
+begin
+  // we can cheat at inserting files by adding a new MRF part
 end;
 
 end.

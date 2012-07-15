@@ -3560,7 +3560,7 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = tsBrowse
+    ActivePage = tsSelect
     Align = alClient
     TabOrder = 0
     object tsBrowse: TTabSheet
@@ -3811,6 +3811,12 @@ object WizUI: TWizUI
         Height = 13
         Caption = 'Mark your file replacements here:'
       end
+      object Label9: TLabel
+        Left = 136
+        Top = 246
+        Width = 3
+        Height = 13
+      end
       object ListView2: TListView
         Left = 16
         Top = 64
@@ -3852,19 +3858,29 @@ object WizUI: TWizUI
         Caption = '&Insert..'
         Enabled = False
         TabOrder = 2
+        OnClick = Button2Click
       end
       object Button1: TButton
-        Left = 144
-        Top = 240
+        Left = 432
+        Top = 16
         Width = 75
         Height = 25
         Caption = 'COM TEST'
         TabOrder = 3
         OnClick = Button1Click
       end
+      object Edit2: TEdit
+        Left = 16
+        Top = 242
+        Width = 113
+        Height = 21
+        TabOrder = 4
+        OnChange = Edit2Change
+        OnKeyDown = Edit2KeyDown
+      end
     end
     object tsProgress: TTabSheet
-      Caption = '|'
+      Caption = 'tsPatch'
       ImageIndex = 5
       TabVisible = False
       object Label24: TLabel
@@ -3883,38 +3899,18 @@ object WizUI: TWizUI
       object Label2: TLabel
         Left = 16
         Top = 40
-        Width = 394
+        Width = 406
         Height = 13
         Caption = 
-          'This stage will allow you to patch the changes your have marked ' +
-          'in the filesystem.'
-      end
-      object Label1: TLabel
-        Left = 40
-        Top = 72
-        Width = 46
-        Height = 13
-        Caption = 'Changes:'
-      end
-      object Label3: TLabel
-        Left = 96
-        Top = 72
-        Width = 15
-        Height = 13
-        Caption = 'NA'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = [fsBold]
-        ParentFont = False
+          'Your replacements can now be patched into the filesystem. Start ' +
+          'this process below:'
       end
       object Label4: TLabel
-        Left = 144
-        Top = 64
-        Width = 278
+        Left = 304
+        Top = 8
+        Width = 225
         Height = 13
-        Caption = 'This is an ALPHA BUILD. No changes will be made!!'
+        Caption = 'PLEASE NOTE: This is an incomplete build'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -3923,18 +3919,19 @@ object WizUI: TWizUI
         ParentFont = False
       end
       object pbPatch: TProgressBar
-        Left = 152
+        Left = 42
         Top = 112
-        Width = 225
+        Width = 453
         Height = 16
-        Position = 25
+        Position = 75
+        Smooth = True
         TabOrder = 0
       end
       object mPatch: TMemo
         Left = 16
-        Top = 152
-        Width = 497
-        Height = 105
+        Top = 144
+        Width = 505
+        Height = 121
         TabStop = False
         PopupMenu = PopupMenu1
         ReadOnly = True
@@ -3943,7 +3940,7 @@ object WizUI: TWizUI
       end
       object Button3: TButton
         Left = 212
-        Top = 85
+        Top = 77
         Width = 113
         Height = 25
         Caption = 'Begin'
@@ -3985,8 +3982,12 @@ object WizUI: TWizUI
   object PopupMenu1: TPopupMenu
     Left = 92
     Top = 7
+    object ClearLog1: TMenuItem
+      Caption = '&Clear Log'
+      OnClick = ClearLog1Click
+    end
     object SaveLog1: TMenuItem
-      Caption = 'Save &As..'
+      Caption = '&Save'
     end
   end
   object SaveDialog1: TSaveDialog
@@ -3999,7 +4000,7 @@ object WizUI: TWizUI
     Enabled = False
     Interval = 20
     OnTimer = Timer1Timer
-    Left = 444
-    Top = 119
+    Left = 300
+    Top = 15
   end
 end
