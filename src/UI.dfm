@@ -3876,7 +3876,7 @@ object WizUI: TWizUI
         Height = 21
         TabOrder = 4
         OnChange = Edit2Change
-        OnKeyDown = Edit2KeyDown
+        OnKeyPress = Edit2KeyPress
       end
     end
     object tsProgress: TTabSheet
@@ -3937,6 +3937,7 @@ object WizUI: TWizUI
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 1
+        WantReturns = False
       end
       object Button3: TButton
         Left = 212

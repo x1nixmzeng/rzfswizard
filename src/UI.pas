@@ -99,10 +99,9 @@ type
     procedure Timer1Timer(Sender: TObject);
     procedure Button6Click(Sender: TObject);
     procedure Edit2Change(Sender: TObject);
-    procedure Edit2KeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
     procedure ClearLog1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure Edit2KeyPress(Sender: TObject; var Key: Char);
   private
     function ProcessNavNext(tab: integer) : Boolean;
     function ProcessNavPrev(tab: integer) : Boolean;
@@ -765,7 +764,7 @@ begin
     end;
 end;
 
-procedure TWizUI.Edit2KeyDown(Sender:TObject;var Key:Word;Shift:TShiftState);
+procedure TWizUI.Edit2KeyPress(Sender: TObject; var Key: Char);
 const
   QUERY_EMPTY   = '';
   QUERY_SUCCESS = 'Found another!';
@@ -788,6 +787,8 @@ begin
         edit2.Font.Color := clRed;
         label9.Caption   := QUERY_FAILED;
       end;
+
+    key := #0; // bugfix: pretend key was not pressed
   end
 
   // Clear the query
@@ -795,6 +796,7 @@ begin
   begin
     edit2.Text := QUERY_EMPTY;
     label9.Caption := QUERY_EMPTY;
+    key := #0; // bugfix: pretend key was not pressed
   end;
 end;
 
@@ -809,3 +811,4 @@ begin
 end;
 
 end.
+
