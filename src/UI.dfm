@@ -3560,9 +3560,10 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = tsSelect
+    ActivePage = tsBrowse
     Align = alClient
     TabOrder = 0
+    TabStop = False
     object tsBrowse: TTabSheet
       Caption = 'tsBrowse'
       Font.Charset = DEFAULT_CHARSET
@@ -3623,7 +3624,7 @@ object WizUI: TWizUI
         Color = clBtnFace
         PopupMenu = pmNull
         ReadOnly = True
-        TabOrder = 1
+        TabOrder = 2
       end
       object btnBrowse: TButton
         Left = 416
@@ -3631,7 +3632,6 @@ object WizUI: TWizUI
         Width = 75
         Height = 25
         Caption = '&Browse..'
-        Default = True
         TabOrder = 0
         OnClick = btnBrowseClick
       end
@@ -3641,92 +3641,8 @@ object WizUI: TWizUI
         Width = 75
         Height = 25
         Caption = 'Reset'
-        TabOrder = 2
+        TabOrder = 1
         OnClick = btnResetClick
-      end
-      object CheckBox1: TCheckBox
-        Left = 16
-        Top = 136
-        Width = 497
-        Height = 17
-        Caption = 'Show alternative developer mode'
-        Enabled = False
-        TabOrder = 3
-        OnClick = CheckBox1Click
-      end
-      object Panel1: TPanel
-        Left = 0
-        Top = 160
-        Width = 537
-        Height = 97
-        BevelOuter = bvNone
-        UseDockManager = False
-        TabOrder = 4
-        Visible = False
-        object Label10: TLabel
-          Left = 16
-          Top = 8
-          Width = 402
-          Height = 13
-          Caption = 
-            'This wizard can automatically detect file changes. Select the lo' +
-            'cal RaiderZ directory:'
-        end
-        object Label13: TLabel
-          Left = 96
-          Top = 72
-          Width = 120
-          Height = 13
-          Caption = 'No directory selected'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clMaroon
-          Font.Height = -11
-          Font.Name = 'Tahoma'
-          Font.Style = [fsBold]
-          ParentFont = False
-        end
-        object Label12: TLabel
-          Left = 40
-          Top = 72
-          Width = 35
-          Height = 13
-          Caption = 'Status:'
-        end
-        object Edit1: TEdit
-          Left = 40
-          Top = 40
-          Width = 289
-          Height = 21
-          Color = clBtnFace
-          PopupMenu = pmNull
-          ReadOnly = True
-          TabOrder = 0
-        end
-        object Reset: TButton
-          Left = 336
-          Top = 38
-          Width = 75
-          Height = 25
-          Caption = 'Reset'
-          TabOrder = 1
-        end
-        object Button5: TButton
-          Left = 416
-          Top = 38
-          Width = 75
-          Height = 25
-          Caption = '&Locate..'
-          TabOrder = 2
-        end
-      end
-      object Button6: TButton
-        Left = 416
-        Top = 104
-        Width = 75
-        Height = 25
-        Caption = '- PACK TEST -'
-        TabOrder = 5
-        OnClick = Button6Click
       end
     end
     object tsTarget: TTabSheet

@@ -14,18 +14,6 @@ uses
   StrUtils;
 
 type
-
-  TPatcher = class(TThread)
-    public
-        fpacked: TMemoryStream;
-    private
-      myStatus: integer;
-    protected
-      procedure Execute; override;
-    public
-      function getProgress: integer;
-  end;
-
   TWizUI = class(TForm)
     pnHeader: TPanel;
     pnFooter: TPanel;
@@ -67,21 +55,12 @@ type
     Label2: TLabel;
     mPatch: TMemo;
     XPManifest1: TXPManifest;
-    Label10: TLabel;
-    Edit1: TEdit;
-    Reset: TButton;
-    Button5: TButton;
-    Label12: TLabel;
-    Label13: TLabel;
-    CheckBox1: TCheckBox;
-    Panel1: TPanel;
     Button3: TButton;
     PopupMenu1: TPopupMenu;
     SaveLog1: TMenuItem;
     SaveDialog1: TSaveDialog;
     Timer1: TTimer;
     Label4: TLabel;
-    Button6: TButton;
     Edit2: TEdit;
     Label9: TLabel;
     ClearLog1: TMenuItem;
@@ -97,7 +76,6 @@ type
     procedure CheckBox1Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
-    procedure Button6Click(Sender: TObject);
     procedure Edit2Change(Sender: TObject);
     procedure ClearLog1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -111,8 +89,6 @@ type
     procedure ResetGlobalFileIndex() ;
 
     procedure PrePatchChecks();
-
-    function PackFile(fname: String; var osize: integer) : TMemoryStream;
 
     function ListViewSearch(lb:TListView;needle:string;fromcur:boolean=false):boolean;
 
@@ -578,12 +554,12 @@ end;
 
 procedure TWizUI.CheckBox1Click(Sender: TObject);
 begin
-  Panel1.Visible:= TCheckBox(Sender).Checked;
+
 end;
 
 {
    compress file
-}
+
 function TWizUI.PackFile(fname: String; var osize: integer) : TMemoryStream;
 var
   inFile : TMemoryStream;
@@ -601,15 +577,15 @@ begin
 
   // msf scrambling
   libMSF.msfScramble( Byte(Result.Memory^), Result.Size );
-  
+
   inFile.Free;
 
 end;
-
+  }
 procedure TWizUI.Button3Click(Sender: TObject);
 var
   rcnt : Cardinal;
-  patchth: TPatcher;
+  patchth: MSFPatcher;
 
   procedure Log( str: String) ;
   begin
@@ -645,28 +621,33 @@ begin
     Exit;
   end;
 
+  // Increase progress bar max value
+  pbPatch.Max := pbPatch.Max + (rcnt*10);
+
   Log('-- Patching begins');
   if rcnt = 1 then Log('1 file marked')
   else             Log(IntToStr(rcnt)+' files marked');
 
+  // Reset the directory
+  SetCurrentDir( ExtractFileDir( edPath.Text ) );
 
-  {
+  // Create the patch thread
+  patchth := MSFPatcher.Create( false );
 
-  // todo: push some data here and begin the patching process
-  patchth := TPatcher.Create( true );
-  patchth.FreeOnTerminate := False;
+  // Use current index
+  patchth.SetMSF( FileIndex );
+  patchth.FreeOnTerminate := true;
   patchth.Resume;
 
-  while patchth.getProgress() < 100 do
+  // While thread exectues
+  while patchth.getProgress() < rcnt do
   begin
-    // update progress bar
-    pbPatch.Position := patchth.getProgress();
+    // Update position
+    pbPatch.Position := 100 + ( patchth.getProgress() * 10 );
     application.ProcessMessages;
   end;
 
-  patchth.Free;
-
-  }
+  // Patch ends
 
   Log('-- Patching has finished');
 
@@ -680,40 +661,7 @@ begin
   else
     pbPatch.Position := pbPatch.Position +1;
 end;
-        {
-constructor TPatcher.Create;
-begin
-  inherited Create;
-  // setup some private members here
-  myStatus := 0;
-  FreeOnTerminate := True;
-end;
-       }
-procedure TPatcher.Execute;
-begin
-
-  while myStatus < 101 do
-  begin
-    inc(myStatus);
-    //Sleep(100);
-  end;
-
-end;
-
-function TPatcher.getProgress: integer;
-begin
-  Result := myStatus;
-end;
-
-procedure TWizUI.Button6Click(Sender: TObject);
-begin
-// todo: remove
-  if FileIndex = nil then exit;
-
-  FileIndex.SaveFileIndex('lolwhat.msf');
-
-end;
-
+ 
 function TWizUI.ListViewSearch(lb:TListView;needle:string;fromcur:boolean=false):boolean;
 var i,j:integer;
 begin

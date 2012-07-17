@@ -56,7 +56,7 @@ type
 
   (***************************************
     MSF class to handle data inside fileindex.msf
-  ****************************************)
+   ***************************************)
   type MSF = class
   private
     MrfFiles,  // Array of unique MRF files
@@ -72,11 +72,11 @@ type
     procedure ExportIndex( FIndex: TMemoryStream );    
     procedure ImportIndex( FIndex: TMemoryStream );
 
-    function GetMrfPartName( index: cardinal ): string;    
-
   public
     constructor Create;
     destructor Destroy; override;
+
+    function GetMrfPartName( index: cardinal ): string;
 
     function SaveFileIndex( FileName: String ) : Boolean;    
     function LoadFileIndex( FileName: String ) : Boolean;
@@ -93,6 +93,27 @@ type
     procedure ReplaceFile( mrfIndex, fileIndex: Cardinal; const fName: String );
 
     function CountFileReplacements(): Cardinal; // did return stringlist
+  end;
+
+  (***************************************
+    Class to handle MRF patching
+   ***************************************)
+
+  PLogFunc = procedure(str:String);
+type
+  MSFPatcher = class(TThread)
+    public
+      fpacked: TMemoryStream;
+    private
+      myStatus: integer;
+      msfi : ^MSF;
+      logger : PLogFunc;
+    protected
+      procedure Execute; override;
+    public
+      procedure SetMSF(var msfindex: MSF);
+      procedure SetLogFunc(func: pointer);
+      function getProgress: integer;
   end;
 
   function UnLZMA(inFile: TMemoryStream; outSize:Cardinal): TMemoryStream;
@@ -589,6 +610,151 @@ begin
 
   encoder.Free;
 
+end;
+
+procedure MSFPatcher.SetMSF(var msfindex: MSF);
+begin
+  msfi:=@msfindex;
+end;
+
+procedure MSFPatcher.Execute;
+var
+  i,j,k: integer;
+  fr:cardinal;
+  plist: array of integer;
+  mrf,
+  base : string;
+
+  ofilesize :cardinal;
+  tmp, lzfile:TMemoryStream;
+
+  fs1, fs2 : TFileStream;
+begin
+
+  assert( msfi <> nil );
+
+  // Reset status
+  myStatus := 0;
+
+  // TODO:
+  // Look for files within the same MRF (faster to split+join)
+
+  fr := msfi.CountFileReplacements();
+  SetLength(plist, fr);
+
+  // Make list of file indexes to replace
+  j:=0;
+  for i:=1 to msfi.FileCount do
+  begin
+    if msfi.FileEntries[i-1].replaceW <> '' then
+    begin
+      plist[j] := i-1;
+      inc(j);
+    end;
+  end;
+
+  assert( fr = j );
+
+  // Ensure we're at the fileindex.msf directory from tab #1
+  base := GetCurrentDir();
+  if base[length(base)-1] <> '\' then base := base + '\';
+
+  // for each replacement (TODO: optimize)
+  for i:=1 to j do
+  begin
+    // Make MRF name (TODO: clean)
+    with msfi.FileEntries[plist[i-1]] do
+    begin
+      mrf := msfi.MrfFiles[ mrfOwner ] + msfi.GetMrfPartName( mrfIndex );
+    end;
+
+    // Check MRF exists
+    mrf := base + mrf;
+    assert( fileexists(mrf) );
+
+
+    // Attempt to load replacement
+    tmp := TMemoryStream.Create;
+    tmp.LoadFromFile( msfi.FileEntries[plist[i-1]].replaceW );
+
+    // Ensure size is valid (TODO: error)
+    assert( tmp.size > 0 );
+
+    ofilesize := tmp.Size;
+
+    // Pack file
+    lzfile := PackLZMA(tmp); // compress
+    tmp.Free;
+    lzfile.Position:=0;
+    libMSF.msfScramble(Byte(lzfile.Memory^), lzfile.Size); // scramble
+
+    // DEBUG ONLY
+    lzfile.SaveToFile(format('example_%d.msf',[plist[i-1]]));
+
+    lzfile.Position := 0;
+
+//    RenameFile(mrf, mrf+'_');
+
+    // Open MRF for reading
+    fs1 := TFileStream.Create('test.dat', fmCreate); // not fmOpenWrite
+    fs2 := TFileStream.Create(mrf{+'_'}, fmOpenRead);
+
+    if msfi.FileEntries[plist[i-1]].entryData.offset > 0 then
+    begin
+      // copy data from 0 to offset
+      fs1.CopyFrom(fs2, msfi.FileEntries[plist[i-1]].entryData.offset);
+      fs2.Seek( msfi.FileEntries[plist[i-1]].entryData.offset, soBeginning );
+    end;
+
+    // copy compressed data
+    fs1.CopyFrom( lzfile, lzfile.Size );
+    lzfile.Free;
+
+    // copy remaining data
+    fs2.Seek
+    (
+      msfi.FileEntries[plist[i-1]].entryData.offset +
+      msfi.FileEntries[plist[i-1]].entryData.zsize,
+      soBeginning
+    );
+
+    if fs2.Position <> fs2.Size then
+    begin
+
+      fs1.CopyFrom( fs2, fs2.Size-fs2.Position );
+    end;
+
+    fs1.Free;
+    fs2.Free;
+
+    // NOW UPDATE THE FILEINDEX
+    // this has a ROLLING effect on all files in the system
+
+    // 1 :calculate size difference
+    // 2: update all entries with same mrf index and same part
+
+    // then update the entry for the new size/zsize, etc
+
+    mystatus := i;//*10;
+
+  end;
+
+
+  // finally, write the fileindex out (takes longer to write than compress)
+
+  // some huge number to mark end of patching
+  mystatus := 999;
+
+end;
+
+function MSFPatcher.getProgress: integer;
+begin
+  Result := myStatus;
+end;
+
+procedure MSFPatcher.SetLogFunc(func: pointer);
+begin
+  @logger:=func;
 end;
 
 end.
