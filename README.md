@@ -7,26 +7,26 @@ The project is still in early stages of development. If you encounter any proble
 
 **Download**
 
-Latest alpha build: https://github.com/x1nixmzeng/rzfswizard/raw/master/rzfswizard.exe (perma-link)
+![Latest build](https://github.com/x1nixmzeng/rzfswizard/raw/master/rzfswizard.exe)
 
 
 **Instructions**
 
  - Select the MSF file index to modify (typically `fileindex.msf`)
 
-![Step1](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab1.png)
+![Step1](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab1.PNG)
 
  - Select the folder you wish to modify
 
-![Step2](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab2.png)
+![Step2](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab2.PNG)
 
  - Mark your file replacements
 
 You can go back to mark file replacements from other folders too
 
-![Step3](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab3.png)
+![Step3](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab3.PNG)
 
  - Run the patching process
 
-![Step4](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab4.png)
+![Step4](https://github.com/x1nixmzeng/rzfswizard/raw/master/docs/tab4.PNG)
 
