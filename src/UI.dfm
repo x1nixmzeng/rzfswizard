@@ -3560,7 +3560,7 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = tsBrowse
+    ActivePage = tsProgress
     Align = alClient
     TabOrder = 0
     TabStop = False

@@ -584,9 +584,10 @@ end;
   }
 procedure TWizUI.Button3Click(Sender: TObject);
 var
-  rcnt : Cardinal;
+  i,rcnt : Cardinal;
   patchth: MSFPatcher;
-
+  CritSect : TRTLCriticalSection;
+    
   procedure Log( str: String) ;
   begin
     mPatch.Lines.Add( Format('[%s] %s', [TimeToStr(Now),str] ) );
@@ -634,9 +635,12 @@ begin
   // Create the patch thread
   patchth := MSFPatcher.Create( false );
 
+  InitializeCriticalSection(CritSect);
+
   // Use current index
   patchth.SetMSF( FileIndex );
   patchth.FreeOnTerminate := true;
+  patchth.enableLogging();
   patchth.Resume;
 
   // While thread exectues
@@ -644,8 +648,23 @@ begin
   begin
     // Update position
     pbPatch.Position := 100 + ( patchth.getProgress() * 10 );
+
+    // May not be best practice to loop this so many times
+    EnterCriticalSection(CritSect);
+
+    for i:=1 to patchth.getLogMessages().Count do
+    begin
+      log( patchth.getLogMessages.Strings[0] );
+      patchth.getLogMessages.Delete(0);
+    end;
+
+    LeaveCriticalSection(CritSect);
+
     application.ProcessMessages;
+    Sleep(10);
   end;
+
+  DeleteCriticalSection(CritSect);
 
   // Patch ends
 
