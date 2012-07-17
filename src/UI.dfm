@@ -3574,7 +3574,7 @@ object WizUI: TWizUI
       ParentFont = False
       TabVisible = False
       object lblHead1: TLabel
-        Left = 8
+        Left = 16
         Top = 8
         Width = 63
         Height = 16
@@ -3650,7 +3650,7 @@ object WizUI: TWizUI
       ImageIndex = 2
       TabVisible = False
       object Label5: TLabel
-        Left = 8
+        Left = 16
         Top = 8
         Width = 86
         Height = 16
@@ -3708,7 +3708,7 @@ object WizUI: TWizUI
       ImageIndex = 3
       TabVisible = False
       object Label7: TLabel
-        Left = 8
+        Left = 16
         Top = 8
         Width = 85
         Height = 16
@@ -3791,7 +3791,7 @@ object WizUI: TWizUI
       ImageIndex = 5
       TabVisible = False
       object Label24: TLabel
-        Left = 8
+        Left = 16
         Top = 8
         Width = 52
         Height = 16
@@ -3883,6 +3883,7 @@ object WizUI: TWizUI
     end
     object SaveLog1: TMenuItem
       Caption = '&Save'
+      OnClick = SaveLog1Click
     end
   end
   object SaveDialog1: TSaveDialog

@@ -76,6 +76,7 @@ type
     procedure ClearLog1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Edit2KeyPress(Sender: TObject; var Key: Char);
+    procedure SaveLog1Click(Sender: TObject);
   private
     function ProcessNavNext(tab: integer) : Boolean;
     function ProcessNavPrev(tab: integer) : Boolean;
@@ -289,10 +290,17 @@ begin
       if sl.Count > 0 then
         ListView1.Items[0].Selected := true;
 
-      lblStatus.Caption := 'Success! Located '+IntToStr2(FileIndex.FileCount()
+      lblStatus.Caption := 'Success! Found '+IntToStr2(FileIndex.FileCount()
                                                                     )+' files';
       lblStatus.Font.Color := clGreen;
 
+    end
+    else
+    begin
+      // The error here is either that the file could not be read
+      // or (typically) the user has selected a bad MSF format (later version?)
+      lblStatus.Caption    := 'Failed to load MSF data';
+      lblStatus.Font.Color := clMaroon;
     end;
 
   end;
@@ -511,7 +519,7 @@ begin
   pbPatch.Max := rcnt*10;
 
   Log('-- Patching has begun');
-  Log('Files: '+IntToStr(rcnt));
+  Log('File modifications: '+IntToStr(rcnt));
 
   // Reset the directory
   SetCurrentDir( ExtractFileDir( edPath.Text ) );
@@ -660,6 +668,14 @@ end;
 procedure TWizUI.Button2Click(Sender: TObject);
 begin
   // we can cheat at inserting files by adding a new MRF part
+end;
+
+procedure TWizUI.SaveLog1Click(Sender: TObject);
+begin
+  savedialog1.Files.Clear;
+
+  if savedialog1.Execute then
+    mPatch.Lines.SaveToFile(SaveDialog1.Files[0]);
 end;
 
 end.

@@ -325,11 +325,13 @@ begin
   {$IFDEF EXPORT_MSFDEC}
     tmpBuffer.SaveToFile('flist_debug.msf');
   {$ENDIF}
-  ImportIndex( tmpBuffer );
+
+  if tmpBuffer.Size > 0 then ImportIndex( tmpBuffer );
+
+  Result := ( tmpBuffer.Size > 0 );
 
   // Clear the buffers
   tmpBuffer.Free;
-  Result := True;
 
 end;
 
@@ -662,7 +664,7 @@ begin
   if base[length(base)-1] <> '\' then base := base + '\';
 
   // Log the current directory
-  if log <> nil then log.Add('Filesystem path: "'+base+'"');
+  if log <> nil then log.Add('Filesystem base: "'+base+'"');
 
   // For each marked replacement
   for i:=1 to j do
@@ -672,7 +674,7 @@ begin
     // Check replacement still exists
     if not fileexists( entry.replaceW ) then
     begin
-      log.Add('ERROR: Failed to open "'+entry.replaceW+'"');
+      log.Add('ERROR: Unable to open "'+entry.replaceW+'"');
       entry := nil;
     end;
 
@@ -695,6 +697,9 @@ begin
 
     if entry <> nil then
     begin
+
+      log.Add('Compressing '+entry.replaceW + '..');
+
       // Load the new file
       tmp := TMemoryStream.Create;
       tmp.LoadFromFile( entry.replaceW );
@@ -705,13 +710,11 @@ begin
       if ofilesize = 0 then
       begin
         // Nothing to pack
-        log.Add('WARNING: Empty file');
+        log.Add('WARNING: File is blank');
       end
       else
       begin
         // Pack the file
-        if log <> nil then log.Add('Compressing file..');
-
         lzfile := PackLZMA(tmp); // compress
         tmp.Free;
         lzfile.Position:=0;
@@ -719,7 +722,7 @@ begin
       end;
 
       // Patch MRF (this must be done when filesize is 0 too)
-      if log <> nil then log.Add('Patching MRF..');
+      if log <> nil then log.Add('Patching '+mrf+'..');
 
       // TODO: find a temporary name instead of deleting potential user data
       if fileexists(mrf+'_') then deletefile(mrf+'_');
@@ -741,6 +744,10 @@ begin
       end;
 
       filesize := 0;
+
+      //
+      // KNOWN ISSUE WITH DELTA SIZE AROUND HERE
+      //
 
       // Check we can copy the new file to the MRF (not when size = 0)
       if ofilesize > 0 then
@@ -796,11 +803,12 @@ begin
   if log<>nil then log.Add('Exporting fileindex.msf..');
 
   msfi.SaveFileIndex(base+'fileindex.msf');
-  log.Add('fileindex.msf has been exported');
+  log.Add('File index has been saved!');
 
   SetLength(plist,0);
 
-  Sleep(30);
+  // This pause allows the final log message (above) to be outputted
+  Sleep(21);
 
   // Mark end of patching
   mystatus := 99999;
