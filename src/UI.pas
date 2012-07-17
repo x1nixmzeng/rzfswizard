@@ -51,7 +51,6 @@ type
     btnReset: TButton;
     Label24: TLabel;
     Button2: TButton;
-    Button1: TButton;
     Label2: TLabel;
     mPatch: TMemo;
     XPManifest1: TXPManifest;
@@ -60,7 +59,6 @@ type
     SaveLog1: TMenuItem;
     SaveDialog1: TSaveDialog;
     Timer1: TTimer;
-    Label4: TLabel;
     Edit2: TEdit;
     Label9: TLabel;
     ClearLog1: TMenuItem;
@@ -72,8 +70,6 @@ type
     procedure btnResetClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Button4Click(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
-    procedure CheckBox1Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
     procedure Edit2Change(Sender: TObject);
@@ -348,6 +344,9 @@ begin
             if ListView2.Items.Count > 0 then
               ListView2.Items.Item[0].Selected := True;
 
+            // Clear any previous searches
+            edit2.Text := '';
+            label9.Caption := '';
 
             Result := True;
           end
@@ -454,92 +453,6 @@ begin
   end;
 end;
 
-procedure TWizUI.Button1Click(Sender: TObject);
-var
-  i: integer;
-  ms, tmp: tmemorystream;
-  d, item : string;
-begin
-
-  d := GetCurPath();
-
-  for i := 1 to ListView2.Items.Count do
-  begin
-
-    item := ListView2.Items.Item[i-1].SubItems[1];
-
-    if ( item <> '<none>' ) and ( FileExists( item ) ) then
-    begin
-
-      ms := tmemorystream.Create;
-
-      try
-        ms.LoadFromFile( item );
-
-        tmp := PackLZMA( ms );
-        libMSF.msfScramble( Byte(tmp.Memory^), tmp.Size );
-
-        // todo: make filename
-        item := d + Format('mrf_%d.tmp',[i-1]);
-        tmp.SaveToFile( item );
-
-        tmp.Free;
-
-      finally
-        ms.Free;
-      end;
-
-    end;
-
-
-  end;
-
-end;
-
-{
-procedure TWizUI.RunPatcher();
-var
-  i: integer;
-  sl : TStringList;
-
-  procedure Log( str: String) ;
-  begin
-    mPatch.Lines.Add( Format('%s  %s', [TimeToStr(Now),str] ) );
-  end;
-
-begin
-
-  pbPatch.Min := 0;
-  pbPatch.Position := 0;
-  pbPatch.Max := 100; // PRELIM MAX. max will increase with filesizes?
-
-  mPatch.Lines.Clear();
-  Log('Patch started');
-
-  // todo: create thread which check files
-
-  sl := FileIndex.GetFileReplacements();
-
-  Log('Locating replacement files..');
-
-  for i:=0 to sl.Count-1 do
-  begin
-
-    if not FileExists(sl.Strings[i]) then
-    begin
-      Log('Failed to open "' + sl.strings[i] + '"');
-    end;
-
-  end;
-
-  Log( 'Found ' + IntToStr(sl.Count) + ' marked changes' );  
-
-  sl.Free;
-
-
-end;
-      }
-
 procedure TWizUI.PrePatchChecks();
 begin
 
@@ -552,36 +465,6 @@ begin
 
 end;
 
-procedure TWizUI.CheckBox1Click(Sender: TObject);
-begin
-
-end;
-
-{
-   compress file
-
-function TWizUI.PackFile(fname: String; var osize: integer) : TMemoryStream;
-var
-  inFile : TMemoryStream;
-begin
-  osize := -1; // invalid size
-  if not fileexists(fname) then begin
-    result:=nil;
-    exit;
-  end;
-
-  inFile:=TMemoryStream.Create;
-
-  // lzma compressiong (TODO: PROGRESS METER)
-  Result:=rzFileSys.PackLZMA(inFile);
-
-  // msf scrambling
-  libMSF.msfScramble( Byte(Result.Memory^), Result.Size );
-
-  inFile.Free;
-
-end;
-  }
 procedure TWizUI.Button3Click(Sender: TObject);
 var
   i,rcnt : Cardinal;
@@ -598,7 +481,7 @@ begin
   TButton(Sender).Enabled := False;
   pbPatch.Min      := 0;
   pbPatch.Position := 0;
-  pbPatch.Max      := 100; // preliminary position
+  pbPatch.Max      := 100;
    
   Application.ProcessMessages;
 
@@ -622,12 +505,13 @@ begin
     Exit;
   end;
 
-  // Increase progress bar max value
-  pbPatch.Max := pbPatch.Max + (rcnt*10);
+  btnBack.Enabled := False; // todo: reload fileindex
 
-  Log('-- Patching begins');
-  if rcnt = 1 then Log('1 file marked')
-  else             Log(IntToStr(rcnt)+' files marked');
+  // Progress is measures in increments of 10
+  pbPatch.Max := rcnt*10;
+
+  Log('-- Patching has begun');
+  Log('Files: '+IntToStr(rcnt));
 
   // Reset the directory
   SetCurrentDir( ExtractFileDir( edPath.Text ) );
@@ -644,10 +528,10 @@ begin
   patchth.Resume;
 
   // While thread exectues
-  while patchth.getProgress() < rcnt do
+  while patchth.getProgress() < rcnt+1 do
   begin
     // Update position
-    pbPatch.Position := 100 + ( patchth.getProgress() * 10 );
+    pbPatch.Position := ( patchth.getProgress() * 10 );
 
     // May not be best practice to loop this so many times
     EnterCriticalSection(CritSect);
@@ -668,7 +552,8 @@ begin
 
   // Patch ends
 
-  Log('-- Patching has finished');
+  Log('-- Patching has ended');
+  Log('This is an ALPHA BUILD. If you encounter problems, get in touch!');
 
   TButton(Sender).Enabled := True;
 

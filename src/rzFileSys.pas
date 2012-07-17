@@ -227,6 +227,8 @@ var
   fn, mrfn: string;
 begin
 
+  // todo: strip any existing data so another index can be reloaded
+
   Files := 0;
 
   // First, loop through and determine the file count
@@ -343,7 +345,7 @@ end;
 //
 procedure MSF.ExportIndex( FIndex: TMemoryStream );
 var
-  i,len: Cardinal;
+  i: Cardinal;
   tmp: string;
 begin
 
@@ -619,18 +621,20 @@ end;
 
 procedure MSFPatcher.Execute;
 var
-  i,j,k: integer;
-  fr:cardinal;
+  i,j,
+  deltaSize : integer;
+
   plist: array of integer;
   mrf,
   base : string;
 
+  filesize,
   ofilesize :cardinal;
   tmp, lzfile:TMemoryStream;
 
   fs1, fs2 : TFileStream;
 
-  entry : ^MSF_ENTRY;
+  entry, entry2 : ^MSF_ENTRY;
 begin
   assert( msfi <> nil );
 
@@ -658,7 +662,7 @@ begin
   if base[length(base)-1] <> '\' then base := base + '\';
 
   // Log the current directory
-  if log <> nil then log.Add('Using filesystem path: '+base+'');
+  if log <> nil then log.Add('Filesystem path: "'+base+'"');
 
   // For each marked replacement
   for i:=1 to j do
@@ -668,7 +672,7 @@ begin
     // Check replacement still exists
     if not fileexists( entry.replaceW ) then
     begin
-      log.Add('Could not find "'+entry.replaceW+'"');
+      log.Add('ERROR: Failed to open "'+entry.replaceW+'"');
       entry := nil;
     end;
 
@@ -682,11 +686,9 @@ begin
 
       // todo: update slashes
 
-      if log <> nil then log.Add('Opening '+mrf);
-
       if not fileexists( mrf ) then
       begin
-        log.Add('');
+        log.Add('ERROR: Unable to open "'+mrf+'"');
         entry := nil;
       end;
     end;
@@ -703,12 +705,12 @@ begin
       if ofilesize = 0 then
       begin
         // Nothing to pack
-        log.Add('Warning: file is empty');
+        log.Add('WARNING: Empty file');
       end
       else
       begin
         // Pack the file
-        if log <> nil then log.Add('Packing file..');
+        if log <> nil then log.Add('Compressing file..');
 
         lzfile := PackLZMA(tmp); // compress
         tmp.Free;
@@ -718,6 +720,9 @@ begin
 
       // Patch MRF (this must be done when filesize is 0 too)
       if log <> nil then log.Add('Patching MRF..');
+
+      // TODO: find a temporary name instead of deleting potential user data
+      if fileexists(mrf+'_') then deletefile(mrf+'_');
 
       // Rename the existing MRF data
       RenameFile(mrf,mrf+'_');
@@ -735,13 +740,19 @@ begin
         fs2.Seek( entry.entryData.offset, soBeginning ); 
       end;
 
+      filesize := 0;
+
       // Check we can copy the new file to the MRF (not when size = 0)
       if ofilesize > 0 then
       begin
         lzfile.Position := 0;
         fs1.CopyFrom( lzfile, lzfile.Size );
+        filesize := lzfile.Size;
+        deltaSize := lzfile.Size - entry.entryData.zsize;
         lzfile.Free;
-      end;
+      end
+      else
+        deltaSize := 0-entry.entryData.zsize;
 
       // Copy any trailing data
       fs2.Seek( entry.entryData.offset + entry.entryData.zsize, soBeginning );
@@ -753,30 +764,46 @@ begin
       fs1.Free;
       fs2.Free;
 
-      if log <> nil then log.Add('Finished');
+      entry.entryData.size := ofilesize;
+      entry.entryData.zsize:= filesize;
 
-      // NOW UPDATE THE FILEINDEX
-      // this has a ROLLING effect on all files in the system
+      // entry.entryData.unknown // this may contain a hash of some sort
 
-      // 1 :calculate size difference
-      // 2: update all entries with same mrf index and same part
+      // Update offsets in database
+      if deltaSize <> 0 then
+      begin
 
-      // then update the entry for the new size/zsize, etc
+        for j:=plist[i-1]+2 to msfi.FileCount() do
+        begin
+          entry2 := @(msfi.FileEntries[ j-1 ]);
 
-      mystatus := i;//*10;
+          if ( entry2.mrfOwner = entry.mrfOwner )
+           and ( entry2.mrfIndex = entry.mrfIndex ) then
+          begin
+            entry2.entryData.offset := entry2.entryData.offset-deltaSize;
+          end;
+        end;
+
+      end;
+
+      if log <> nil then log.Add('File patched!');
+      mystatus := i;
     end;
 
   end;
 
+  // Write the MSF index
+  if log<>nil then log.Add('Exporting fileindex.msf..');
 
-  // finally, write the fileindex out (takes longer to write than compress)
+  msfi.SaveFileIndex(base+'fileindex.msf');
+  log.Add('fileindex.msf has been exported');
 
   SetLength(plist,0);
 
-  // some huge number to mark end of patching
-  mystatus := 999;
+  Sleep(30);
 
-  if log <> nil then log.Clear;
+  // Mark end of patching
+  mystatus := 99999;
 
 end;
 

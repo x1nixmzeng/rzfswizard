@@ -3776,21 +3776,12 @@ object WizUI: TWizUI
         TabOrder = 2
         OnClick = Button2Click
       end
-      object Button1: TButton
-        Left = 432
-        Top = 16
-        Width = 75
-        Height = 25
-        Caption = 'COM TEST'
-        TabOrder = 3
-        OnClick = Button1Click
-      end
       object Edit2: TEdit
         Left = 16
         Top = 242
         Width = 113
         Height = 21
-        TabOrder = 4
+        TabOrder = 3
         OnChange = Edit2Change
         OnKeyPress = Edit2KeyPress
       end
@@ -3820,19 +3811,6 @@ object WizUI: TWizUI
         Caption = 
           'Your replacements can now be patched into the filesystem. Start ' +
           'this process below:'
-      end
-      object Label4: TLabel
-        Left = 304
-        Top = 8
-        Width = 225
-        Height = 13
-        Caption = 'PLEASE NOTE: This is an incomplete build'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = [fsBold]
-        ParentFont = False
       end
       object pbPatch: TProgressBar
         Left = 42
