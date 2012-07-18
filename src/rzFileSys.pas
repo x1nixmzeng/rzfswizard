@@ -75,6 +75,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure CleanUp;
 
     function GetMrfPartName( index: cardinal ): string;
 
@@ -134,10 +135,6 @@ constructor MSF.Create;
 begin
   inherited Create;
 
-  // Create the string arrays
-  MrfFiles := TStringList.Create;
-  FileList := TStringList.Create;
-
   // Make hash table if it does not exist
   if not libMSF.msfGetHashTable() then
   begin
@@ -149,19 +146,26 @@ begin
   Files    := 0;
 end;
 
-// MSF class destructor
+// Destroy allocated classes
 //
-destructor MSF.Destroy;
+procedure MSF.CleanUp;
 begin
   // Destroy string arrays
-  MrfFiles.Clear;
+  if MrfFiles <> nil then MrfFiles.Clear;
   MrfFiles.Free;
-  FileList.Clear;
+  if FileList <> nil then FileList.Clear;
   FileList.Free;
 
   // Clear array
   SetLength(FileEntries, 0);
   Files    := 0;
+end;
+
+// MSF class destructor
+//
+destructor MSF.Destroy;
+begin
+  CleanUp;
 
   // Destroy base class
   inherited Destroy;
@@ -326,7 +330,17 @@ begin
     tmpBuffer.SaveToFile('flist_debug.msf');
   {$ENDIF}
 
-  if tmpBuffer.Size > 0 then ImportIndex( tmpBuffer );
+  if tmpBuffer.Size > 0 then
+  begin
+    // Destroy existing data
+    CleanUp;
+
+    // Create the string arrays
+    MrfFiles := TStringList.Create;
+    FileList := TStringList.Create;
+
+    ImportIndex( tmpBuffer );
+  end;
 
   Result := ( tmpBuffer.Size > 0 );
 
@@ -621,6 +635,14 @@ begin
   msfi:=@msfindex;
 end;
 
+{
+  TODO
+
+  MSFPatcher procedure which can make the file changes from the same MSF part #
+  
+}
+
+
 procedure MSFPatcher.Execute;
 var
   i,j,
@@ -812,7 +834,13 @@ begin
 
   SetLength(plist,0);
 
-  // This pause allows the final log message (above) to be outputted
+  // Re-import file index
+
+  log.Add('Reloading file index..');
+  msfi.LoadFileIndex(base+'fileindex.msf');
+  log.Add('File index re-imported!');
+
+  // This pause allows the final log message (below) to be outputted
   Sleep(21);
 
   // Mark end of patching

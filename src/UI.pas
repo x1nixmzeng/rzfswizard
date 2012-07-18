@@ -513,7 +513,7 @@ begin
     Exit;
   end;
 
-  btnBack.Enabled := False; // todo: reload fileindex
+  btnBack.Enabled := False;
 
   // Progress is measures in increments of 10
   pbPatch.Max := rcnt*10;
@@ -564,6 +564,12 @@ begin
   Log('This is an ALPHA BUILD. If you encounter problems, get in touch!');
 
   TButton(Sender).Enabled := True;
+
+  btnBack.Enabled := True; // fileindex has now been re-imported!
+
+  // Ensure the replacement files are marked as empty again
+  for i:=1 to listview2.Items.Count do
+    ListView2.Items.Item[i-1].SubItems[1] := '<none>';
 
 end;
 
