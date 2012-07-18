@@ -745,21 +745,21 @@ begin
 
       filesize := 0;
 
-      //
-      // KNOWN ISSUE WITH DELTA SIZE AROUND HERE
-      //
-
       // Check we can copy the new file to the MRF (not when size = 0)
       if ofilesize > 0 then
       begin
         lzfile.Position := 0;
         fs1.CopyFrom( lzfile, lzfile.Size );
         filesize := lzfile.Size;
+        // size of new file - size of current
         deltaSize := lzfile.Size - entry.entryData.zsize;
         lzfile.Free;
       end
       else
-        deltaSize := 0-entry.entryData.zsize;
+      begin
+        // zsize is now 0, so the difference is the original size
+        deltaSize := -entry.entryData.zsize;
+      end;
 
       // Copy any trailing data
       fs2.Seek( entry.entryData.offset + entry.entryData.zsize, soBeginning );
@@ -770,6 +770,9 @@ begin
       // Finally:
       fs1.Free;
       fs2.Free;
+
+      // now delete fs2 (temporary file)
+      if fileexists(mrf+'_') then deletefile(mrf+'_');
 
       entry.entryData.size := ofilesize;
       entry.entryData.zsize:= filesize;
@@ -784,10 +787,12 @@ begin
         begin
           entry2 := @(msfi.FileEntries[ j-1 ]);
 
+          // update the offsets for files in the same mrf
           if ( entry2.mrfOwner = entry.mrfOwner )
            and ( entry2.mrfIndex = entry.mrfIndex ) then
           begin
-            entry2.entryData.offset := entry2.entryData.offset-deltaSize;
+            // bugfix: wrong sign here
+            entry2.entryData.offset := entry2.entryData.offset+deltaSize;
           end;
         end;
 
