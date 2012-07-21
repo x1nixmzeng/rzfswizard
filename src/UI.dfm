@@ -3505,7 +3505,7 @@ object WizUI: TWizUI
       Height = 13
       Alignment = taRightJustify
       Anchors = [akTop, akRight]
-      Caption = 'Alpha Build'
+      Caption = 'Alpha build'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clGray
       Font.Height = -11
@@ -3560,7 +3560,7 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = tsProgress
+    ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
     TabStop = False
@@ -3677,7 +3677,7 @@ object WizUI: TWizUI
         Columns = <
           item
             Caption = 'Name'
-            Width = 200
+            Width = 170
           end
           item
             Caption = 'Parts'
@@ -3841,6 +3841,80 @@ object WizUI: TWizUI
         Caption = 'Begin'
         TabOrder = 2
         OnClick = Button3Click
+      end
+    end
+    object TabSheet1: TTabSheet
+      Caption = 'TabSheet1'
+      ImageIndex = 4
+      TabVisible = False
+      object Label1: TLabel
+        Left = 16
+        Top = 8
+        Width = 109
+        Height = 16
+        Caption = 'Patching Options'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object Label3: TLabel
+        Left = 16
+        Top = 40
+        Width = 232
+        Height = 13
+        Caption = 'Choose how would you like to modify this folder:'
+      end
+      object Label4: TLabel
+        Left = 72
+        Top = 120
+        Width = 269
+        Height = 13
+        Caption = 'This path was made using the filelist.msf base directory:'
+      end
+      object RadioButton4: TRadioButton
+        Left = 40
+        Top = 72
+        Width = 457
+        Height = 17
+        Caption = 'Mark file replacements individually (default)'
+        Checked = True
+        TabOrder = 0
+        TabStop = True
+      end
+      object RadioButton5: TRadioButton
+        Left = 40
+        Top = 96
+        Width = 457
+        Height = 17
+        Caption = 'Compare all files with those in directory'
+        TabOrder = 1
+      end
+      object RadioButton6: TRadioButton
+        Left = 40
+        Top = 184
+        Width = 457
+        Height = 17
+        Caption = 'RadioButton6'
+        TabOrder = 2
+      end
+      object Edit1: TEdit
+        Left = 72
+        Top = 144
+        Width = 313
+        Height = 21
+        TabOrder = 3
+        Text = 'X:\msf_base\selected_folder\'
+      end
+      object Button1: TButton
+        Left = 400
+        Top = 144
+        Width = 75
+        Height = 25
+        Caption = 'Button1'
+        TabOrder = 4
       end
     end
   end

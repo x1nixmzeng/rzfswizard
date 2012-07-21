@@ -62,6 +62,15 @@ type
     Edit2: TEdit;
     Label9: TLabel;
     ClearLog1: TMenuItem;
+    TabSheet1: TTabSheet;
+    Label1: TLabel;
+    Label3: TLabel;
+    RadioButton4: TRadioButton;
+    RadioButton5: TRadioButton;
+    RadioButton6: TRadioButton;
+    Edit1: TEdit;
+    Button1: TButton;
+    Label4: TLabel;
     procedure btnNextClick(Sender: TObject);
     procedure btnBackClick(Sender: TObject);
     procedure pmExtractPopup(Sender: TObject);
@@ -525,18 +534,18 @@ begin
   SetCurrentDir( ExtractFileDir( edPath.Text ) );
 
   // Create the patch thread
-  patchth := MSFPatcher.Create( false );
+  patchth := MSFPatcher.Create;
 
   InitializeCriticalSection(CritSect);
 
   // Use current index
   patchth.SetMSF( FileIndex );
   patchth.FreeOnTerminate := true;
-  patchth.enableLogging();
+  
   patchth.Resume;
 
   // While thread exectues
-  while patchth.getProgress() < rcnt+1 do
+  while not patchth.finishedPatch() do
   begin
     // Update position
     pbPatch.Position := ( patchth.getProgress() * 10 );

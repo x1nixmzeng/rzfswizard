@@ -2,6 +2,9 @@
   rzfswizard
   x1nixmzeng (July 2012)
 
+  July 21st
+  Added data checksum (although unchecked in client)
+  
   July 15th
   Added some structure comments and function descriptions
 }
@@ -25,7 +28,7 @@ type
 
   (***************************************
     Static MSF file entry structure
-    20-bytes
+    20-bytes (2 bytes of padding)
   ****************************************)
   FILEINDEX_ENTRY = packed record
     size,      // Uncompressed filesize
@@ -33,10 +36,10 @@ type
     zsize      // Compressed filesize in MRF file
              : uint32;
     lenMRFN,   // Length of MRF filename
-    lenName    // Length of this filename
+    lenName,   // Length of this filename
+    dataHash,  // Uncompressed data checksum
+    _padding_  // Structure alignment
              : uint16;
-    unknown    // Unknown hash value
-             : uint32;
   end;
 
   (***************************************
@@ -106,15 +109,17 @@ type
       myStatus: integer;
       msfi    : ^MSF;
       log     : TStringList;
+      isOver  : Boolean;
     protected
       procedure Execute; override;
     public
+      constructor Create;
+      destructor Destroy;
       procedure SetMSF(var msfindex: MSF);
-      
+
+      function finishedPatch(): Boolean;
       function getProgress: integer;
       function getLogMessages(): TStringList;
-
-      procedure enableLogging();
   end;
 
   function UnLZMA(inFile: TMemoryStream; outSize:Cardinal): TMemoryStream;
@@ -298,6 +303,7 @@ var
 
   UnpackBuf,
   tmpBuffer: TMemoryStream;
+
 begin
 
   Result := False;
@@ -630,6 +636,26 @@ begin
 
 end;
 
+
+
+constructor MSFPatcher.Create;
+begin
+  inherited Create(True);
+
+  // Create log list
+  log:=TStringList.Create();
+  isOver := false;
+end;
+
+destructor MSFPatcher.Destroy;
+begin
+  // Null pointer value
+  if msfi <> nil then msfi := nil;
+
+  // Free log
+  log.Free;
+end;
+
 procedure MSFPatcher.SetMSF(var msfindex: MSF);
 begin
   msfi:=@msfindex;
@@ -647,7 +673,7 @@ procedure MSFPatcher.Execute;
 var
   i,j,
   deltaSize : integer;
-
+  checksum : word;
   plist: array of integer;
   mrf,
   base : string;
@@ -661,6 +687,8 @@ var
   entry, entry2 : ^MSF_ENTRY;
 begin
   assert( msfi <> nil );
+
+  isOver := False;
 
   // Reset status
   myStatus := 0;
@@ -686,7 +714,7 @@ begin
   if base[length(base)-1] <> '\' then base := base + '\';
 
   // Log the current directory
-  if log <> nil then log.Add('Filesystem base: "'+base+'"');
+  log.Add('Filesystem base: "'+base+'"');
 
   // For each marked replacement
   for i:=1 to j do
@@ -733,10 +761,12 @@ begin
       begin
         // Nothing to pack
         log.Add('WARNING: File is blank');
+        checksum := 0;
       end
       else
       begin
         // Pack the file
+        checksum := libMSF.msfChecksum(Byte(tmp.Memory^), tmp.Size); // hash        
         lzfile := PackLZMA(tmp); // compress
         tmp.Free;
         lzfile.Position:=0;
@@ -744,7 +774,7 @@ begin
       end;
 
       // Patch MRF (this must be done when filesize is 0 too)
-      if log <> nil then log.Add('Patching '+mrf+'..');
+      log.Add('Patching '+mrf+'..');
 
       // TODO: find a temporary name instead of deleting potential user data
       if fileexists(mrf+'_') then deletefile(mrf+'_');
@@ -796,8 +826,9 @@ begin
       // now delete fs2 (temporary file)
       if fileexists(mrf+'_') then deletefile(mrf+'_');
 
-      entry.entryData.size := ofilesize;
-      entry.entryData.zsize:= filesize;
+      entry.entryData.size    := ofilesize;
+      entry.entryData.zsize   := filesize;
+      entry.entryData.dataHash:= checksum;
 
       // entry.entryData.unknown // this may contain a hash of some sort
 
@@ -820,14 +851,14 @@ begin
 
       end;
 
-      if log <> nil then log.Add('File patched!');
+      log.Add('File patched!');
       mystatus := i;
     end;
 
   end;
 
   // Write the MSF index
-  if log<>nil then log.Add('Exporting fileindex.msf..');
+  log.Add('Exporting fileindex.msf..');
 
   msfi.SaveFileIndex(base+'fileindex.msf');
   log.Add('File index has been saved!');
@@ -840,12 +871,14 @@ begin
   msfi.LoadFileIndex(base+'fileindex.msf');
   log.Add('File index re-imported!');
 
-  // This pause allows the final log message (below) to be outputted
-  Sleep(21);
+  // Mark the end of patching
+  isOver := True;
 
-  // Mark end of patching
-  mystatus := 99999;
+end;
 
+function MSFPatcher.finishedPatch(): Boolean;
+begin
+  Result := isOver;
 end;
 
 function MSFPatcher.getProgress: integer;
@@ -857,14 +890,6 @@ function MSFPatcher.getLogMessages(): TStringList;
 begin
   assert( log <> nil );
   Result := log;
-end;
-
-procedure MSFPatcher.enableLogging();
-begin
-  if log = nil then
-    log:=TStringList.Create()
-  else
-    log.Clear();
 end;
 
 end.

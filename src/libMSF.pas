@@ -3,6 +3,9 @@
   x1nixmzeng (July 2012)
 
   Ported to Pascal from libMSF.c
+
+  July 21 2012
+    Added msfChecksum() function
 }
 unit libMSF;
 
@@ -12,6 +15,7 @@ interface
   procedure msfMakeHashTable( );
   function msfScramble(var data: array of byte; size: cardinal ): integer;
   function msfUnscramble(var dataBuf: array of byte; size: cardinal ): integer;
+  function msfChecksum(var dataBuf: array of byte; size: cardinal): word;
 
 implementation
 
@@ -95,7 +99,22 @@ begin
   end;
 end;
 
+function msfChecksum(var dataBuf: array of byte; size: cardinal): word;
+var
+  i: Cardinal;
+begin
+  // Base checksum value
+  Result := $3F75;
 
+  if ( ( msfGetHashTable() ) and ( size > 0 ) ) then
+  begin
+
+    for i := 0 to size-1 do
+      Result := ( Result shl 1 ) + g_msf_xortable[ dataBuf[i] ];
+
+  end;
+
+end;
 
 end.
 
