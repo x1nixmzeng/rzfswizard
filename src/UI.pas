@@ -25,7 +25,7 @@ type
     tsTarget: TTabSheet;
     edPath: TEdit;
     lblHead1: TLabel;
-    Label5: TLabel;
+    lblHead2: TLabel;
     Label6: TLabel;
     ListView1: TListView;
     tsSelect: TTabSheet;
@@ -36,7 +36,7 @@ type
     tsProgress: TTabSheet;
     pbPatch: TProgressBar;
     btnBrowse: TButton;
-    OpenDialog1: TOpenDialog;
+    odLocate: TOpenDialog;
     imHead: TImage;
     lblInfo: TLabel;
     lblBuild: TLabel;
@@ -53,24 +53,28 @@ type
     Button2: TButton;
     Label2: TLabel;
     mPatch: TMemo;
-    XPManifest1: TXPManifest;
+    xp_themes: TXPManifest;
     Button3: TButton;
-    PopupMenu1: TPopupMenu;
+    pmLog: TPopupMenu;
     SaveLog1: TMenuItem;
-    SaveDialog1: TSaveDialog;
-    Timer1: TTimer;
+    sdPatchLog: TSaveDialog;
     Edit2: TEdit;
     Label9: TLabel;
     ClearLog1: TMenuItem;
-    TabSheet1: TTabSheet;
-    Label1: TLabel;
+    tsOptions: TTabSheet;
+    lvlHead3: TLabel;
     Label3: TLabel;
     RadioButton4: TRadioButton;
     RadioButton5: TRadioButton;
     RadioButton6: TRadioButton;
     Edit1: TEdit;
     Button1: TButton;
-    Label4: TLabel;
+    Edit3: TEdit;
+    Button5: TButton;
+    RadioButton1: TRadioButton;
+    CheckBox1: TCheckBox;
+    Edit4: TEdit;
+    Label1: TLabel;
     procedure btnNextClick(Sender: TObject);
     procedure btnBackClick(Sender: TObject);
     procedure pmExtractPopup(Sender: TObject);
@@ -80,12 +84,12 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
-    procedure Timer1Timer(Sender: TObject);
     procedure Edit2Change(Sender: TObject);
     procedure ClearLog1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Edit2KeyPress(Sender: TObject; var Key: Char);
     procedure SaveLog1Click(Sender: TObject);
+    procedure PatchOptRadioClick(Sender: TObject);    
   private
     function ProcessNavNext(tab: integer) : Boolean;
     function ProcessNavPrev(tab: integer) : Boolean;
@@ -99,7 +103,7 @@ type
     function ListViewSearch(lb:TListView;needle:string;fromcur:boolean=false):boolean;
 
   public
-    { Public declarations }
+
   end;
 
 var
@@ -255,10 +259,10 @@ procedure TWizUI.btnBrowseClick(Sender: TObject);
 var
   sl : TStringList;  i : cardinal;
 begin
-  if OpenDialog1.Execute then
+  if odLocate.Execute then
   begin
 
-    edPath.Text := OpenDialog1.Files[0];
+    edPath.Text := odLocate.Files[0];
 
     if FileIndex <> nil then
       FileIndex.Destroy;
@@ -351,7 +355,7 @@ begin
          else
            ShowMessage('No MSF file is selected.'#13#10'Select one to continue!');
        end;
-    2 : begin
+    2: begin
           if ListView1.SelCount = 1 then
           begin
 
@@ -370,7 +374,13 @@ begin
           else
             ShowMessage('Select a subfolder to continue');
         end;
-    3 : begin
+    3: begin
+
+         // todo: option checking, implementing, etc
+         Result := True;
+
+       end;
+    4 : begin
 
           PrePatchChecks();
           Result := True;
@@ -386,31 +396,16 @@ begin
 
   case tab of
     0: begin
-
-        // btnBack.Enabled := false;
          Result := True;
-
        end;
-
     1: begin
-        (*
-        if MessageBoxA(
-          Handle,
-          'You can only modify one MRF at a time' +
-          #13#10 +
-          'Do you want to lose changes?',
-          'Confirm',
-          MB_ICONASTERISK or MB_YESNO{CANCEL}
-        ) = mrYes then*)
-        begin
-          Result := True;
-        end;
-      end;
-    2: begin
-
-         //ShowMessage('Patch is in progress!');
          Result := True;
-
+       end;
+    2: begin
+         Result := True;;
+       end;
+    3: begin
+         Result := True;
        end;
   end;
 end;
@@ -582,13 +577,6 @@ begin
 
 end;
 
-procedure TWizUI.Timer1Timer(Sender: TObject);
-begin
-  if pbPatch.Position = pbPatch.Max then timer1.Enabled:=False
-  else
-    pbPatch.Position := pbPatch.Position +1;
-end;
- 
 function TWizUI.ListViewSearch(lb:TListView;needle:string;fromcur:boolean=false):boolean;
 var i,j:integer;
 begin
@@ -687,10 +675,19 @@ end;
 
 procedure TWizUI.SaveLog1Click(Sender: TObject);
 begin
-  savedialog1.Files.Clear;
+  sdPatchLog.Files.Clear;
 
-  if savedialog1.Execute then
-    mPatch.Lines.SaveToFile(SaveDialog1.Files[0]);
+  if sdPatchLog.Execute then
+    mPatch.Lines.SaveToFile(sdPatchLog.Files[0]);
+end;
+
+procedure TWizUI.PatchOptRadioClick(Sender: TObject);
+begin
+  Edit1.Enabled   := RadioButton5.Checked;
+  Button1.Enabled := RadioButton5.Checked;
+
+  Edit3.Enabled   := RadioButton6.Checked;
+  Button5.Enabled := RadioButton6.Checked;
 end;
 
 end.

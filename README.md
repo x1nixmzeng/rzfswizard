@@ -3,6 +3,10 @@
 
 This tool was written to allow users to modify their RaiderZ filesystem to include custom content.
 
+**NOTE** Only very early clients are supported (the filesystem changed after this). Known client support:
+
+    RaiderZ r28320 (Feb 2010)
+
 It is designed to encourage users to distribute their own content, and does not handle file extraction. However, the project is still in early stages of development and any problems you encounter should be reported (GitHub issues, or by contacting x1nixmzeng).
 
 ## Download

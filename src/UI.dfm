@@ -3560,7 +3560,7 @@ object WizUI: TWizUI
     Top = 65
     Width = 545
     Height = 285
-    ActivePage = TabSheet1
+    ActivePage = tsSelect
     Align = alClient
     TabOrder = 0
     TabStop = False
@@ -3618,7 +3618,7 @@ object WizUI: TWizUI
       object edPath: TEdit
         Left = 40
         Top = 74
-        Width = 289
+        Width = 297
         Height = 21
         TabStop = False
         Color = clBtnFace
@@ -3627,7 +3627,7 @@ object WizUI: TWizUI
         TabOrder = 2
       end
       object btnBrowse: TButton
-        Left = 416
+        Left = 424
         Top = 72
         Width = 75
         Height = 25
@@ -3636,7 +3636,7 @@ object WizUI: TWizUI
         OnClick = btnBrowseClick
       end
       object btnReset: TButton
-        Left = 336
+        Left = 344
         Top = 72
         Width = 75
         Height = 25
@@ -3649,7 +3649,7 @@ object WizUI: TWizUI
       Caption = 'tsTarget'
       ImageIndex = 2
       TabVisible = False
-      object Label5: TLabel
+      object lblHead2: TLabel
         Left = 16
         Top = 8
         Width = 86
@@ -3701,6 +3701,112 @@ object WizUI: TWizUI
         PopupMenu = pmNull
         TabOrder = 0
         ViewStyle = vsReport
+      end
+    end
+    object tsOptions: TTabSheet
+      Caption = 'tsOptions'
+      ImageIndex = 4
+      TabVisible = False
+      object lvlHead3: TLabel
+        Left = 16
+        Top = 8
+        Width = 109
+        Height = 16
+        Caption = 'Patching Options'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object Label3: TLabel
+        Left = 16
+        Top = 40
+        Width = 232
+        Height = 13
+        Caption = 'Choose how would you like to modify this folder:'
+      end
+      object RadioButton4: TRadioButton
+        Left = 40
+        Top = 72
+        Width = 457
+        Height = 17
+        Caption = 'Replace individual files'
+        Checked = True
+        TabOrder = 0
+        TabStop = True
+        OnClick = PatchOptRadioClick
+      end
+      object RadioButton5: TRadioButton
+        Left = 40
+        Top = 96
+        Width = 457
+        Height = 17
+        Caption = 'Check for file differences in a folder:'
+        Enabled = False
+        TabOrder = 1
+        OnClick = PatchOptRadioClick
+      end
+      object RadioButton6: TRadioButton
+        Left = 40
+        Top = 168
+        Width = 457
+        Height = 17
+        Caption = 'Insert and replace all files which exist in a folder:'
+        Enabled = False
+        TabOrder = 2
+        OnClick = PatchOptRadioClick
+      end
+      object RadioButton1: TRadioButton
+        Left = 40
+        Top = 240
+        Width = 457
+        Height = 17
+        Caption = 'Rename or remove existing files'
+        Enabled = False
+        TabOrder = 3
+        OnClick = PatchOptRadioClick
+      end
+      object Button1: TButton
+        Left = 382
+        Top = 120
+        Width = 75
+        Height = 25
+        Caption = '&Browse..'
+        Enabled = False
+        TabOrder = 4
+      end
+      object Edit1: TEdit
+        Left = 64
+        Top = 122
+        Width = 305
+        Height = 21
+        Color = clBtnFace
+        Enabled = False
+        PopupMenu = pmNull
+        ReadOnly = True
+        TabOrder = 5
+      end
+      object Button5: TButton
+        Left = 382
+        Top = 200
+        Width = 75
+        Height = 25
+        Caption = '&Browse..'
+        Enabled = False
+        TabOrder = 6
+      end
+      object Edit3: TEdit
+        Left = 64
+        Top = 202
+        Width = 305
+        Height = 21
+        Color = clBtnFace
+        Enabled = False
+        PopupMenu = pmNull
+        ReadOnly = True
+        TabOrder = 7
       end
     end
     object tsSelect: TTabSheet
@@ -3812,9 +3918,17 @@ object WizUI: TWizUI
           'Your replacements can now be patched into the filesystem. Start ' +
           'this process below:'
       end
+      object Label1: TLabel
+        Left = 104
+        Top = 88
+        Width = 22
+        Height = 13
+        Caption = '(MB)'
+        Enabled = False
+      end
       object pbPatch: TProgressBar
         Left = 42
-        Top = 112
+        Top = 136
         Width = 453
         Height = 16
         Position = 75
@@ -3823,11 +3937,11 @@ object WizUI: TWizUI
       end
       object mPatch: TMemo
         Left = 16
-        Top = 144
+        Top = 176
         Width = 505
-        Height = 121
+        Height = 89
         TabStop = False
-        PopupMenu = PopupMenu1
+        PopupMenu = pmLog
         ReadOnly = True
         ScrollBars = ssVertical
         TabOrder = 1
@@ -3835,90 +3949,36 @@ object WizUI: TWizUI
       end
       object Button3: TButton
         Left = 212
-        Top = 77
+        Top = 101
         Width = 113
         Height = 25
         Caption = 'Begin'
         TabOrder = 2
         OnClick = Button3Click
       end
-    end
-    object TabSheet1: TTabSheet
-      Caption = 'TabSheet1'
-      ImageIndex = 4
-      TabVisible = False
-      object Label1: TLabel
+      object CheckBox1: TCheckBox
         Left = 16
-        Top = 8
-        Width = 109
-        Height = 16
-        Caption = 'Patching Options'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -13
-        Font.Name = 'Tahoma'
-        Font.Style = [fsBold]
-        ParentFont = False
-      end
-      object Label3: TLabel
-        Left = 16
-        Top = 40
-        Width = 232
-        Height = 13
-        Caption = 'Choose how would you like to modify this folder:'
-      end
-      object Label4: TLabel
-        Left = 72
-        Top = 120
-        Width = 269
-        Height = 13
-        Caption = 'This path was made using the filelist.msf base directory:'
-      end
-      object RadioButton4: TRadioButton
-        Left = 40
-        Top = 72
-        Width = 457
+        Top = 64
+        Width = 185
         Height = 17
-        Caption = 'Mark file replacements individually (default)'
+        Caption = 'Split large MRF files into parts:'
         Checked = True
-        TabOrder = 0
-        TabStop = True
-      end
-      object RadioButton5: TRadioButton
-        Left = 40
-        Top = 96
-        Width = 457
-        Height = 17
-        Caption = 'Compare all files with those in directory'
-        TabOrder = 1
-      end
-      object RadioButton6: TRadioButton
-        Left = 40
-        Top = 184
-        Width = 457
-        Height = 17
-        Caption = 'RadioButton6'
-        TabOrder = 2
-      end
-      object Edit1: TEdit
-        Left = 72
-        Top = 144
-        Width = 313
-        Height = 21
+        Enabled = False
+        State = cbChecked
         TabOrder = 3
-        Text = 'X:\msf_base\selected_folder\'
       end
-      object Button1: TButton
-        Left = 400
-        Top = 144
-        Width = 75
-        Height = 25
-        Caption = 'Button1'
+      object Edit4: TEdit
+        Left = 40
+        Top = 88
+        Width = 57
+        Height = 21
+        Enabled = False
         TabOrder = 4
+        Text = '100'
       end
     end
   end
-  object OpenDialog1: TOpenDialog
+  object odLocate: TOpenDialog
     Filter = 
       'RaiderZ MSF (fileindex.msf)|fileindex.msf|MSF Backups (*.MSF)|*.' +
       'msf'
@@ -3944,11 +4004,11 @@ object WizUI: TWizUI
     Left = 60
     Top = 7
   end
-  object XPManifest1: TXPManifest
+  object xp_themes: TXPManifest
     Left = 336
     Top = 16
   end
-  object PopupMenu1: TPopupMenu
+  object pmLog: TPopupMenu
     Left = 92
     Top = 7
     object ClearLog1: TMenuItem
@@ -3960,17 +4020,10 @@ object WizUI: TWizUI
       OnClick = SaveLog1Click
     end
   end
-  object SaveDialog1: TSaveDialog
+  object sdPatchLog: TSaveDialog
     Filter = 'Text Document (*.txt)|*.txt|All Files|*.*'
     Title = 'Save Patch Log'
     Left = 24
     Top = 40
-  end
-  object Timer1: TTimer
-    Enabled = False
-    Interval = 20
-    OnTimer = Timer1Timer
-    Left = 300
-    Top = 15
   end
 end

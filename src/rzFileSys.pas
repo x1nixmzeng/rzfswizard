@@ -95,6 +95,7 @@ type
 
     procedure AddFilesToList( grid: TListItems; mrfIndex: cardinal );
     procedure ReplaceFile( mrfIndex, fileIndex: Cardinal; const fName: String );
+    procedure InsertFile( mrfIndex : Cardinal; const fName: String );
 
     function CountFileReplacements(): Cardinal; // did return stringlist
   end;
@@ -329,6 +330,15 @@ begin
   // Unpack in memory
   tmpBuffer := UnLZMA(UnpackBuf, unSize);
   UnpackBuf.Free;
+
+  // NEW Check to avoid attempting to read invalid data
+  // Check expected size
+  if tmpBuffer.Size <> unSize then
+  begin
+    tmpBuffer.Free;
+    Result := false;
+    Exit;
+  end;
 
   // Import the file data
   tmpBuffer.Position := 0;
@@ -581,6 +591,24 @@ begin
 
 end;
 
+procedure MSF.InsertFile( mrfIndex : Cardinal; const fName: String );
+begin
+      {
+  Inc(Files);
+  SetLength(FileEntries, Files);
+
+  FileEntries[Files-1].mrfOwner := mrfIndex;
+  FileEntries[Files-1].mrfIndex := 0; // store in first part
+  FileEntries[Files-1].fileIndex:= Files;
+
+  FileEntries[Files-1].entryData.
+
+
+  // .. and mark for replacement, so it gets copied
+  FileEntries[Files-1].replaceW := fName;
+   }
+end;
+
 // Count the number of marked files for replacement
 //
 function MSF.CountFileReplacements(): Cardinal;
@@ -829,8 +857,6 @@ begin
       entry.entryData.size    := ofilesize;
       entry.entryData.zsize   := filesize;
       entry.entryData.dataHash:= checksum;
-
-      // entry.entryData.unknown // this may contain a hash of some sort
 
       // Update offsets in database
       if deltaSize <> 0 then
